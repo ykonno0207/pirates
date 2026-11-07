@@ -2,7 +2,7 @@
 <html lang="ja"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>海賊ゲーム 試作版</title>
+<title>ねこかいぞくの ぼうけん しさくばん</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -94,11 +94,13 @@ h1,h2,h3{margin:0;text-wrap:balance}
 .mi img{max-width:24px;max-height:24px;object-fit:contain}
 .mi b{position:absolute;right:-6px;bottom:-6px;min-width:17px;height:17px;border-radius:99px;background:var(--ink);color:var(--bg);font-size:10px;font-weight:900;line-height:17px;text-align:center;padding:0 4px}
 /* がめんの きりかえ(かいもの / しゅっこう じゅんび) */
-.tabs{position:sticky;top:8px;z-index:6;display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--surface);border-radius:18px;padding:6px;box-shadow:0 4px 14px var(--shadow)}
+.tabs{position:sticky;top:8px;z-index:6;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:var(--surface);border-radius:18px;padding:6px;box-shadow:0 4px 14px var(--shadow)}
 .tabs button{border:0;border-radius:14px;min-height:54px;font-weight:900;font-size:15px;background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:8px;padding:6px 8px;line-height:1.2}
 .tabs button svg{width:22px;height:22px;flex:none}
-.tabs button{white-space:nowrap}
-@media(max-width:420px){.tabs button{font-size:15px}.tabs button svg{display:none}}
+.tabs button{white-space:normal;text-align:center}
+.tabs button[disabled]{opacity:.45;cursor:not-allowed}
+.tabs .tl{white-space:nowrap;line-height:1.25}
+@media(max-width:520px){.tabs button{font-size:14px;padding:4px}.tabs button svg{display:none}}
 .tabs button[aria-selected="true"]{background:var(--sea);color:var(--on-sea);box-shadow:0 3px 0 var(--shadow)}
 .tabs button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .tile.ro{cursor:default}
@@ -520,6 +522,7 @@ const I_FISH_BIG='<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d
 const I_PERSON='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4.6" fill="#fff"/><path d="M3.5 21c0-5.2 3.7-8 8.5-8s8.5 2.8 8.5 8z" fill="#fff"/></svg>';
 const GEM='<svg class="gem" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.1 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z" fill="currentColor"/></svg>';
 const I_CART='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2.2l2.3 10.2a1.5 1.5 0 0 0 1.5 1.2h8.3a1.5 1.5 0 0 0 1.4-1.1L20.6 8H6.6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9.5" cy="19.5" r="1.7" fill="currentColor"/><circle cx="17" cy="19.5" r="1.7" fill="currentColor"/></svg>';
+const I_LOAD='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="9" width="18" height="11" rx="2" fill="currentColor"/><path d="M8 9V6.5a4 4 0 0 1 8 0V9" fill="none" stroke="currentColor" stroke-width="2.2"/></svg>';
 const I_SHIP='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 2.5v11H4.5z" fill="currentColor"/><path d="M12.5 4.5l6 9h-6z" fill="currentColor" opacity=".75"/><path d="M2.5 15.5h19l-2.6 4.2a2 2 0 0 1-1.7.9H6.8a2 2 0 0 1-1.7-.9z" fill="currentColor"/></svg>';
 const coinImg=`<img src="${IMG.coin}" alt="コイン">`;
 const PNAME=i=>`プレイヤー${i+1}`;
@@ -578,7 +581,8 @@ function setShip(g){
   const s=SHIPS[g],sel=G.sel; sel.ship=g;
   sel.cats=sel.cats.slice(0,1+s.xcat);
   sel.tools=sel.tools.filter(id=>toolOk(tool(id),g)).slice(0,s.tool);   // その ふねで つかえない どうぐは もちものに もどる
-  autoFood(); render();
+  autoFood(); ui.tab='sail'; render();
+  const tb=$('.tabs'); if(tb&&tb.getBoundingClientRect().top<0)tb.scrollIntoView({block:'start'});
 }
 /* もちもの → ふね に のせる */
 function load(kind,id){
@@ -755,7 +759,7 @@ function playersStrip(){
       <div class="nums"><span>コイン <b>${p.coins}</b>/${G.goal}</span><span>たべもの <b>${p.food}</b></span><span>ばしょ <b>${p.places.length}</b></span></div><div class="pbar" aria-hidden="true"><i style="width:${Math.min(100,Math.round(p.coins/G.goal*100))}%"></i></div></div>
       <div class="items"><div class="irow"><span class="lb">ねこ</span>${miniItems(p.cats,CATS)}</div><div class="irow"><span class="lb">どうぐ</span>${miniItems(p.tools,TOOLS)}</div></div></div>`).join('')}</div>`;
 }
-function topbar(){return `<div class="topbar"><span class="small muted">試作版(場所・数字・絵は仮)</span><span class="row"><button class="btn ghost" data-act="rules">ルール</button><button class="btn ghost" data-act="cards">カードいちらん</button><button class="btn ghost mutebtn" data-act="mute" aria-pressed="${snd.mute}" aria-label="おんがく ${snd.mute?'いま ミュート':'いま ON'}">${snd.mute?'🔇':'🔊'}</button></span></div>`}
+function topbar(){return `<div class="topbar"><span class="small muted">しさくばん(ばしょ・かず・えは かり)</span><span class="row"><button class="btn ghost" data-act="rules">ルール</button><button class="btn ghost" data-act="cards">カードいちらん</button><button class="btn ghost mutebtn" data-act="mute" aria-pressed="${snd.mute}" aria-label="おんがく ${snd.mute?'いま ミュート':'いま オン'}">${snd.mute?'🔇':'🔊'}</button></span></div>`}
 function logBox(){return G&&G.log.length?`<details class="log"><summary>きろく</summary><ol>${G.log.slice(0,12).map(l=>`<li>${esc(l)}</li>`).join('')}</ol></details>`:''}
 
 function viewSetup(){
@@ -797,7 +801,7 @@ function slotHtml(kind,cls,item,idx){
 }
 function shipFrame(){
   const s=G.sel;
-  if(!s.ship) return `<section class="panel shipf"><h2><span class="step">2</span>ふねに のせる</h2><div class="placeholder">うえで ふねを えらぶと、のせる わくが でるよ</div></section>`;
+  if(!s.ship) return `<section class="panel shipf"><h2>しゅっこう じゅんび</h2><div class="placeholder">さきに ふねを えらんでね</div><div class="row" style="margin-top:10px"><button class="btn ghost" data-act="tab" data-t="ship">ふねの せんたくに もどる</button></div></section>`;
   const sh=SHIPS[s.ship];
   const reqSlots=[];
   for(let i=0;i<sh.food;i++)reqSlots.push(slotHtml('food','req',i<s.food?{}:null,i));
@@ -805,10 +809,10 @@ function shipFrame(){
   const optSlots=[];
   for(let i=0;i<sh.xcat;i++){const id=s.cats[1+i];optSlots.push(slotHtml('cats','opt',id?cat(id):null,1+i))}
   for(let i=0;i<sh.tool;i++){const id=s.tools[i];optSlots.push(slotHtml('tools','opt',id?tool(id):null,i))}
-  return `<section class="panel shipf"><h2><span class="step">2</span>ふねに のせる</h2>
+  return `<section class="panel shipf"><h2 style="justify-content:space-between">しゅっこう じゅんび <button class="btn ghost" data-act="tab" data-t="ship" style="min-height:40px;padding:6px 12px;font-size:14px">← ふねの せんたくに もどる</button></h2>
     <div class="shiphead"><div class="pic"><img src="${sh.img}" alt=""></div><div><b>${sh.name}</b><div class="small muted">グレード${s.ship} ・ きほん +${sh.base}コイン ・ ボーナスで さいだい +${maxBonus(s.ship)}</div></div></div>
     <div class="grp req"><div class="grpt"><span class="tag req">ひっす</span><span>これが ないと しゅっこうできないよ</span></div><div class="slots">${reqSlots.join('')}</div></div>
-    <div class="grp opt"><div class="grpt"><span class="tag opt">にんい</span><span>のせなくても OK。カードの じょうけんに あうと ボーナスの コインが ふえるよ</span></div>
+    <div class="grp opt"><div class="grpt"><span class="tag opt">にんい</span><span>のせなくても いいよ。カードの じょうけんに あうと ボーナスの コインが ふえるよ</span></div>
       ${optSlots.length?`<div class="slots">${optSlots.join('')}</div>`:`<div class="nonote">この ふねには おまけを のせる わくが ないよ</div>`}</div>
     ${sh.tool?`<div class="usable">この ふね(グレード${s.ship})で つかえる どうぐ: <b>${TOOLS.filter(x=>toolOk(x,s.ship)).map(x=>esc(x.name)).join('・')}</b></div>`:''}
     <p class="small muted" style="margin:10px 0 0">のせた カードを タップすると、もっている ものに もどせるよ。しゅっこうすると、のせた ものは ぜんぶ なくなります(どうぐも もどってこないよ)。</p>
@@ -860,11 +864,12 @@ function viewTurn(){
       ${off?`<div class="lackmsg">${st.gone?'':'いまは えらべない: '}${esc(st.reasons.join('・'))}</div>`:''}</button>`}).join('');
   const optInfo=sh?`<span class="ck opt">にんい: ねこ ${Math.max(0,s.cats.length-1)}/${sh.xcat} ・ どうぐ ${s.tools.length}/${sh.tool}</span>`:'';
   const checks=sh?`<span class="ck ${chk.foodOk?'ok':'ng'}">ひっす たべもの ${s.food}/${sh.food}</span><span class="ck ${chk.catOk?'ok':'ng'}">ひっす ねこ ${Math.min(1,s.cats.length)}/1</span>${optInfo}`:'';
-  const tab=ui.tab==='sail'?'sail':'shop';
+  const tab=ui.tab==='sail'&&s.ship?'sail':ui.tab==='ship'||ui.tab==='sail'?'ship':'shop';
   const lack=[1,2,3,4].some(g=>{const st=shipState(g);return !st.ok&&!st.gone});
   const tabs=`<div class="tabs" role="tablist" aria-label="がめんを きりかえる">
-    <button role="tab" id="tab-shop" aria-controls="tabpanel" data-act="tab" data-t="shop" aria-selected="${tab==='shop'}">${I_CART}かいもの</button>
-    <button role="tab" id="tab-sail" aria-controls="tabpanel" data-act="tab" data-t="sail" aria-selected="${tab==='sail'}">${I_SHIP}しゅっこう じゅんび</button></div>`;
+    <button role="tab" id="tab-shop" aria-controls="tabpanel" data-act="tab" data-t="shop" aria-selected="${tab==='shop'}">${I_CART}<span class="tl">かいもの</span></button>
+    <button role="tab" id="tab-ship" aria-controls="tabpanel" data-act="tab" data-t="ship" aria-selected="${tab==='ship'}">${I_SHIP}<span class="tl">ふねを えらぶ</span></button>
+    <button role="tab" id="tab-sail" aria-controls="tabpanel" data-act="tab" data-t="sail" aria-selected="${tab==='sail'}" ${s.ship?'':'disabled title="さきに ふねを えらんでね"'}>${I_LOAD}<span class="tl">しゅっこう<br>じゅんび</span></button></div>`;
   const head=headFrame(tab);
   const shopView=`<section class="panel"><h2>かいもの <span class="small muted">(どれも 1コイン)</span></h2>
     <div class="shop">
@@ -874,18 +879,21 @@ function viewTurn(){
     <div class="drawn" aria-live="polite">${drawnHtml}</div>
     <p class="small muted" style="margin:8px 0 0">どうぐは かえないよ。ぼうけんカードの「ほうび」で もらえるよ。</p>
   </section>
-  <div class="sailbar"><div class="sailrow"><span class="hint">かいものが おわったら、しゅっこうの じゅんびを しよう</span>
-    <div class="sailbtns"><button class="btn ghost" data-act="skip">しゅっこうしない</button><button class="btn gold big" data-act="tab" data-t="sail">じゅんびへ すすむ</button></div></div></div>`;
-  const sailView=`<section class="panel"><h2><span class="step">1</span>ふねを えらぶ</h2>
-    <p class="small muted" style="margin:-4px 0 10px">グレーの ふねは、いまは えらべないよ(たべもの・ねこが たりない／いける ばしょが もう ない)。ぼうけんは かならず コインが もらえるよ。ぼうけんカードは のこり ${advTotal()}まい。ぜんぶ なくなったら おしまい！</p>
+  <div class="sailbar"><div class="sailrow"><span class="hint">かいものが おわったら、ふねを えらぼう</span>
+    <div class="sailbtns"><button class="btn ghost" data-act="skip">しゅっこうしない</button><button class="btn gold big" data-act="tab" data-t="ship">ふねを えらぶ</button></div></div></div>`;
+  const shipView=`<section class="panel"><h2>ふねを えらぶ</h2>
+    <p class="small muted" style="margin:-4px 0 10px">ふねを えらぶと、しゅっこう じゅんびの がめんに かわるよ。グレーの ふねは、いまは えらべないよ(たべもの・ねこが たりない／いける ばしょが もう ない)。ぼうけんは かならず コインが もらえるよ。ぼうけんカードは のこり ${advTotal()}まい。ぜんぶ なくなったら おしまい！</p>
     ${lack?`<div class="row" style="margin:-2px 0 10px"><button class="btn ghost" data-act="tab" data-t="shop">${I_CART.replace('<svg','<svg style="width:20px;height:20px;display:inline-block;vertical-align:-4px;margin-right:4px"')}かいものに もどる</button></div>`:''}
     <div class="ships">${ships}</div></section>
-  ${shipFrame()}
+  <div class="sailbar"><div class="sailrow"><span class="hint">${s.ship?`いまの ふね: ${esc(SHIPS[s.ship].name)}`:'しゅっこうする ふねを えらんでね'}</span>
+    <div class="sailbtns"><button class="btn ghost" data-act="skip">しゅっこうしない</button>${s.ship?`<button class="btn gold big" data-act="tab" data-t="sail">じゅんびへ</button>`:''}</div></div></div>`;
+  const sailView=`${shipFrame()}
   <div class="sailbar"><div class="checks">${checks}</div>
     <div class="sailrow"><span class="hint ${chk.ok?'ok':''}">${esc(chk.msg)}</span>
       <div class="sailbtns"><button class="btn ghost" data-act="skip">しゅっこうしない</button><button class="btn gold big" data-act="sail" ${chk.ok?'':'disabled'}>しゅっこう！</button></div></div></div>`;
-  return `${topbar()}${playersStrip()}${head}${tabs}
-  <div id="tabpanel" role="tabpanel" aria-labelledby="tab-${tab}" style="display:flex;flex-direction:column;gap:16px">${tab==='shop'?shopView:sailView}</div>
+  const body=tab==='shop'?shopView:tab==='ship'?shipView:sailView;
+  return `${topbar()}${playersStrip()}${tab==='sail'?'':head}${tabs}
+  <div id="tabpanel" role="tabpanel" aria-labelledby="tab-${tab}" style="display:flex;flex-direction:column;gap:16px">${tab==='sail'?body.replace('<div class="sailbar">',head+'<div class="sailbar">'):body}</div>
   ${logBox()}`;
 }
 function rewardHtml(c){
@@ -944,16 +952,16 @@ function renderModal(){
     <li><b>ふねを えらぶ:</b> グレード1〜4。たかい ふねほど たべものが いる。ひっすの たべもの・ねこが そろっていない ふねは、グレーで えらべない。</li>
     <li><b>ふねに のせる:</b> 「もっている もの」から、ふねの わくに カードを うつす。
       <ul><li><span class="tag req">ひっす</span> たべもの(ふねで きまった かず)と、ねこ 1ぴき。これが ないと しゅっこうできない。</li>
-      <li><span class="tag opt">にんい</span> おまけの ねこ・どうぐ。のせなくても OK。ふねの わくの かずまで。</li></ul></li>
+      <li><span class="tag opt">にんい</span> おまけの ねこ・どうぐ。のせなくても いいよ。ふねの わくの かずまで。</li></ul></li>
     <li><b>しゅっこう:</b> えらんだ グレードの ぼうけんカードを 1まい めくる。めくった カードは じぶんの もの(いった ばしょ)。やまには もどらない。</li>
     <li><b>ほうび:</b> ぼうけんカードに かいてある どうぐが もらえる(グレード1〜3)。つぎの ぼうけんで つかおう。</li>
     <li><b>コイン:</b> ぼうけんは しっぱいしない。ふねの「きほん」コインが かならず もらえる。</li>
     <li><b>ボーナス:</b> カードの じょうけん(ねこ・どうぐ)を、のせた カードが みたしていたら、カードの ボーナスの コインも もらえる。</li>
     <li>ボーナスが もらえても もらえなくても、のせた たべもの・ねこ・どうぐは ぜんぶ なくなる。つかった どうぐは もどってこない。</li>
     <li>「おうえんのはた」を のせると、どんな じょうけんでも ボーナスが もらえる。</li></ul>
-   <h3>どうぐ(つかう グレード)</h3><ul>${TOOLS.map(x=>`<li><b>${esc(x.name)}</b>: ${toolGradeText(x)}</li>`).join('')}<li>どうぐは、きめられた グレードの ふねにだけ のせられる(おうえんのはたは どの ふねでも OK)。</li><li>どうぐは ぼうけんの ほうびだけで てに はいる(ぜんぶで ${TOOL_TOTAL}まい)。ひくい グレードの ぼうけんで、つぎの グレードの どうぐが もらえるよ。</li><li>おうえんのはたは、グレード3の ぼうけんで しか もらえない(2まいだけ)。</li></ul>
+   <h3>どうぐ(つかう グレード)</h3><ul>${TOOLS.map(x=>`<li><b>${esc(x.name)}</b>: ${toolGradeText(x)}</li>`).join('')}<li>どうぐは、きめられた グレードの ふねにだけ のせられる(おうえんのはたは どの ふねでも いい)。</li><li>どうぐは ぼうけんの ほうびだけで てに はいる(ぜんぶで ${TOOL_TOTAL}まい)。ひくい グレードの ぼうけんで、つぎの グレードの どうぐが もらえるよ。</li><li>おうえんのはたは、グレード3の ぼうけんで しか もらえない(2まいだけ)。</li></ul>
    <h3>メモ</h3><ul><li>「なんでも」は、どの ねこ・どうぐでも よい。「してい」は カードに かかれた ねこ・どうぐ。</li><li>この アプリは しさくばんです。かず・ばしょ・えは かりです。</li></ul>`;
-  const cl=`<h2>カードいちらん(かり)</h2>`+[1,2,3,4].map(g=>`<h3>グレード${g} ${SHIPS[g].name} ・ きほん +${SHIPS[g].base}コイン</h3><div class="cl">${CARDS.filter(c=>c.g===g).map(c=>`<div class="it"><div class="th">${ARTSVG(c.key)}</div><div class="tx"><b>${esc(c.place)}</b><span>${c.bonus>0?`ボーナス +${c.bonus}`:'ボーナスなし'} ・ ほうび: ${c.reward?esc(tool(c.reward).name):'なし'}</span><span class="muted">${c.bonus>0?`じょうけん ねこ: ${[...c.cats.spec.map(i=>cat(i).name),...(c.cats.any?[`なんでも×${c.cats.any}`]:[])].join('+')||'なし'} / どうぐ: ${[...c.tools.spec.map(i=>tool(i).name),...(c.tools.any?[`なんでも×${c.tools.any}`]:[])].join('+')||'なし'}`:'どんな ねこでも OK'}</span></div></div>`).join('')}</div>`).join('')+`<p class="small muted">じょうけんの ねこの かずは、のせた ねこの ぜんぶ(ひっすの 1ぴきも ふくむ)。ぼうけんカードは 1しゅるい 1まい(ぜんぶで ${CARDS.length}まい)。めくったら もどらない。どうぐカードは ほうびの ぶんだけ(${TOOL_TOTAL}まい)。</p>`;
+  const cl=`<h2>カードいちらん(かり)</h2>`+[1,2,3,4].map(g=>`<h3>グレード${g} ${SHIPS[g].name} ・ きほん +${SHIPS[g].base}コイン</h3><div class="cl">${CARDS.filter(c=>c.g===g).map(c=>`<div class="it"><div class="th">${ARTSVG(c.key)}</div><div class="tx"><b>${esc(c.place)}</b><span>${c.bonus>0?`ボーナス +${c.bonus}`:'ボーナスなし'} ・ ほうび: ${c.reward?esc(tool(c.reward).name):'なし'}</span><span class="muted">${c.bonus>0?`じょうけん ねこ: ${[...c.cats.spec.map(i=>cat(i).name),...(c.cats.any?[`なんでも×${c.cats.any}`]:[])].join('+')||'なし'} / どうぐ: ${[...c.tools.spec.map(i=>tool(i).name),...(c.tools.any?[`なんでも×${c.tools.any}`]:[])].join('+')||'なし'}`:'どんな ねこでも いいよ'}</span></div></div>`).join('')}</div>`).join('')+`<p class="small muted">じょうけんの ねこの かずは、のせた ねこの ぜんぶ(ひっすの 1ぴきも ふくむ)。ぼうけんカードは 1しゅるい 1まい(ぜんぶで ${CARDS.length}まい)。めくったら もどらない。どうぐカードは ほうびの ぶんだけ(${TOOL_TOTAL}まい)。</p>`;
   m.innerHTML=`<div class="sheet" role="dialog" aria-modal="true">${ui.modal==='rules'?rule:cl}<button class="btn" data-act="close">とじる</button></div>`;
 }
 
@@ -967,7 +975,7 @@ document.addEventListener('click',e=>{
   else if(a==='start')startGame(ui.players);
   else if(a==='begin'){beginTurn();render()}
   else if(a==='buy')buy(t.dataset.w);
-  else if(a==='tab'){ui.tab=t.dataset.t==='sail'?'sail':'shop';render();const tb=$('.tabs');if(tb&&tb.getBoundingClientRect().top<0)tb.scrollIntoView({block:'start'});const f=$(`#tab-${ui.tab}`);f&&f.focus({preventScroll:true})}
+  else if(a==='tab'){ui.tab=['shop','ship','sail'].includes(t.dataset.t)?t.dataset.t:'shop';render();const tb=$('.tabs');if(tb&&tb.getBoundingClientRect().top<0)tb.scrollIntoView({block:'start'});const f=$(`#tab-${ui.tab}`);f&&f.focus({preventScroll:true})}
   else if(a==='ship')setShip(+t.dataset.g);
   else if(a==='load')load(t.dataset.kind,t.dataset.id);
   else if(a==='unload')unload(t.dataset.kind,+t.dataset.i);
