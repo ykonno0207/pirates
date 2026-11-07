@@ -257,6 +257,29 @@ h1,h2,h3{margin:0;text-wrap:balance}
 .rq img{height:36px;width:auto;max-width:44px;object-fit:contain;background:var(--pic);border-radius:8px;padding:2px}
 .rq.ok{border-color:var(--good);background:var(--good-soft)}
 .rq.ng{border-color:var(--bad);background:var(--bad-soft)}
+.rq .mk{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;color:#fff;font-size:13px;line-height:1;flex:none}
+.rq.ok .mk{background:var(--good)} .rq.ng .mk{background:var(--bad)}
+/* カードに かいてある こと(じょうけん)と、もらった もの を わける */
+.face .cardinfo{border-top:2px dashed var(--line);padding-top:8px;display:flex;flex-direction:column;gap:6px}
+.face .cardinfo .ct{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;font-weight:900;color:var(--muted)}
+.face .cardinfo .ct .bonusv{font-size:12px}
+.face .cardinfo .judge{font-size:13px;font-weight:900}
+.face .cardinfo .judge.ok{color:var(--good)} .face .cardinfo .judge.ng{color:var(--bad)}
+.face .printed{font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 12px}
+.got{width:min(100%,460px);background:color-mix(in srgb,var(--accent) 12%,var(--surface));border:4px solid var(--accent);border-radius:20px;padding:12px 14px;text-align:left;display:flex;flex-direction:column;gap:10px;animation:pop .45s ease-out}
+.got h3{font-family:var(--f-disp);font-weight:400;font-size:22px;display:flex;align-items:center;gap:8px}
+.got .gi{display:grid;grid-template-columns:60px minmax(0,1fr);gap:10px;align-items:center;background:var(--surface);border-radius:14px;padding:8px 10px}
+.got .gi .ic{display:grid;place-items:center;width:60px;height:60px;background:var(--pic);border-radius:12px;overflow:hidden}
+.got .gi .ic img{max-width:52px;max-height:52px;object-fit:contain}
+.got .gi .ic svg{width:100%;height:100%}
+.got .gi .lb{font-size:12px;font-weight:900;color:var(--muted)}
+.got .gi .vl{font-size:17px;font-weight:900;line-height:1.35}
+.got .gi .coins{display:flex;flex-wrap:wrap;gap:2px;margin-top:3px}
+.got .gi .coins img{width:22px;height:22px}
+.got .gi.none{background:transparent;border:2px dashed var(--line);opacity:.75}
+.got .gi.none .vl{font-size:14px;color:var(--muted)}
+.got .total{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-weight:900;font-size:18px;border-top:2px solid color-mix(in srgb,var(--accent) 45%,transparent);padding-top:8px}
+.got .total .now{font-size:14px;color:var(--muted)}
 .reward{display:flex;align-items:center;gap:8px;font-weight:900}
 .reward img{width:30px;height:30px;object-fit:contain}
 .gem{width:26px;height:26px;color:var(--pink)}
@@ -770,7 +793,7 @@ function skip(){log(`${P().name}: しゅっこうしないで おわり`);nextPl
 /* ===== 画面 ===== */
 function reqChips(card,det){
   const out=[];
-  const mk=(cls,im,label)=>`<span class="rq ${cls}">${im?`<img src="${im}" alt="">`:''}${label}</span>`;
+  const mk=(cls,im,label)=>`<span class="rq ${cls}">${cls?`<b class="mk" aria-label="${cls==='ok'?'クリア':'たりない'}">${cls==='ok'?'○':'×'}</b>`:''}${im?`<img src="${im}" alt="">`:''}${label}</span>`;
   const st=(arr,i)=>arr?(arr[i]?(arr[i].ok?'ok':'ng'):''):'';
   let k=0;
   card.cats.spec.forEach(id=>{out.push(mk(st(det&&det.cats,k++),cat(id).img,esc(cat(id).name)+rtag(cat(id))))});
@@ -927,10 +950,26 @@ function viewTurn(){
   <div id="tabpanel" role="tabpanel" aria-labelledby="tab-${tab}" style="display:flex;flex-direction:column;gap:16px">${tab==='shop'?shopView:sailView}</div>
   ${logBox()}`;
 }
-function rewardHtml(c){
-  if(!c.reward)return `<div class="reward muted small">ほうびの どうぐ: なし(グレード4は コインだけ)</div>`;
-  const t=tool(c.reward);
-  return `<div class="reward"><img src="${t.img}" alt=""><span>ほうび: ${esc(t.name)}を もらった！</span><span class="gtag ${t.wild?'all':''}">${toolGradeText(t)}</span></div>`;
+/* もらった もの(じっさいに てに はいった もの)だけを まとめて みせる */
+function gotHtml(r,p){
+  const c=r.card,coins=n=>`<div class="coins" aria-hidden="true">${`<img src="${IMG.coin}" alt="">`.repeat(n)}</div>`;
+  const miss=[];
+  if(c.bonus>0&&!r.bonusOk&&r.det){
+    let k=0; c.cats.spec.forEach(id=>{const d=r.det.cats[k++];if(d&&!d.ok)miss.push(cat(id).name)});
+    if(c.cats.any){const d=r.det.cats[k];if(d&&!d.ok)miss.push(`ねこの かず(${c.cats.spec.length+c.cats.any}ひき)`)}
+    k=0; c.tools.spec.forEach(id=>{const d=r.det.tools[k++];if(d&&!d.ok)miss.push(tool(id).name)});
+  }
+  const t=c.reward?tool(c.reward):null;
+  const rows=[
+    `<div class="gi"><span class="ic"><img src="${IMG.coin}" alt=""></span><div><div class="lb">きほんの コイン(${esc(SHIPS[r.ship].name)})</div><div class="vl">コイン +${r.base}</div>${coins(r.base)}</div></div>`,
+    c.bonus>0&&r.bonusOk?`<div class="gi"><span class="ic"><img src="${IMG.coin}" alt=""></span><div><div class="lb">ボーナス(${r.wild?'おうえんのはたの ちから':'じょうけん クリア'})</div><div class="vl">コイン +${c.bonus}</div>${coins(c.bonus)}</div></div>`
+      :c.bonus>0?`<div class="gi none"><span class="ic" style="opacity:.4"><img src="${IMG.coin}" alt=""></span><div><div class="lb">ボーナス +${c.bonus}</div><div class="vl">もらえなかった(たりない: ${esc(miss.join('・')||'じょうけん')})</div></div></div>`
+      :'',
+    t?`<div class="gi"><span class="ic"><img src="${t.img}" alt=""></span><div><div class="lb">どうぐ(カードの ほうび)</div><div class="vl">${esc(t.name)}</div><span class="gtag ${t.wild?'all':''}">${toolGradeText(t)}</span></div></div>`
+     :`<div class="gi none"><span class="ic" style="opacity:.4">${I_TOOL}</span><div><div class="lb">どうぐ</div><div class="vl">なし(グレード4は コインだけ)</div></div></div>`,
+    `<div class="gi"><span class="ic">${ARTSVG(c.key)}</span><div><div class="lb">いった ばしょ(カードは じぶんの もの)</div><div class="vl">${esc(c.place)}</div></div></div>`];
+  return `<div class="got" aria-live="polite"><h3>🎁 もらった もの</h3>${rows.join('')}
+    <div class="total"><span>コイン ぜんぶで +${r.gain}</span><span class="now">いま ${p.coins}まい</span></div></div>`;
 }
 function viewResult(){
   const r=G.result,p=G.players[r.pid],sh=SHIPS[r.ship],c=r.card;
@@ -943,14 +982,17 @@ function viewResult(){
   }else{
     body=`<div class="face" style="--gc:var(--g${c.g})"><div class="ghead"><span>グレード${c.g}の ぼうけん</span><span class="gnum">${c.g}</span></div><div class="art" role="img" aria-label="${esc(c.place)}の え">${ARTSVG(c.key)}</div>
       ${c.g<r.ship?`<div class="g">グレード${r.ship}の やまが なかったので、グレード${c.g}の やまから めくったよ</div>`:''}<div class="place">${esc(c.place)}</div><div class="note">${esc(c.note)}</div>
-      <div class="subhead" style="margin:4px 0 0">ボーナスの じょうけん(ねこ)</div>${reqChips({cats:c.cats,tools:{spec:[],any:0}},{cats:r.det&&r.det.cats,tools:[]})}
-      <div class="subhead" style="margin:4px 0 0">ボーナスの じょうけん(どうぐ)</div>${reqChips({cats:{spec:[],any:0},tools:c.tools},{cats:[],tools:r.det&&r.det.tools})}
-      <div class="reward">${coinImg}<span>きほん +${r.base}コイン</span>${c.bonus>0?`<span class="bonusv">+ ボーナス ${c.bonus}</span>`:''}</div>
-      ${rewardHtml(c)}</div>
+      <div class="cardinfo">
+        ${c.bonus>0?`<div class="ct">ボーナスの じょうけん <span class="bonusv">みたすと +${c.bonus}</span></div>
+        ${reqChips(c,r.det)}
+        <div class="judge ${r.bonusOk?'ok':'ng'}">${r.wild?'→ おうえんのはたで クリア！':r.bonusOk?'→ ぜんぶ ○ だから クリア！':'→ × が あるので ボーナスは なし'}</div>`
+        :`<div class="ct">この カードには ボーナスが ないよ</div>`}
+        <div class="printed"><span>カードの ほうび: ${c.reward?esc(tool(c.reward).name):'なし'}</span></div>
+      </div></div>
+      ${gotHtml(r,p)}
       ${G.endBy==='goal'?`<div class="banner win">コインが ${p.coins}まいに！ ${esc(p.name)}の かち！</div>`
        :G.endBy==='empty'?`<div class="banner win">ぼうけんカードが ぜんぶ なくなった！ おしまい！</div>`
-       :r.bonusOk?`<div class="banner ok">${r.wild?'おうえんのはたの ちから！ ':''}ボーナス せいこう！ コイン +${r.gain}</div>`
-       :`<div class="banner base">コイン +${r.gain}${c.bonus>0?' (ボーナスは おしかった！ つぎは じょうけんを そろえよう)':''}</div>`}
+       :''}
       <button class="btn gold big" data-act="after">${G.winner?'けっかを みる':'つぎの ひとへ'}</button>`;
   }
   return `${topbar()}${playersStrip()}<section class="panel stage" style="--pc:var(--p${p.i+1})"><div class="row" style="gap:10px">${badge(p.i,40)}<h2 class="disp" style="font-size:22px">${esc(p.name)}の ぼうけん</h2></div>
