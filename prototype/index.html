@@ -104,6 +104,23 @@ h1,h2,h3{margin:0;text-wrap:balance}
 .tabs button[aria-selected="true"]{background:var(--sea);color:var(--on-sea);box-shadow:0 3px 0 var(--shadow)}
 .tabs button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .tile.ro{cursor:default}
+.shop .shipbuy{grid-column:1/-1;flex-direction:row;gap:12px;justify-content:flex-start;text-align:left}
+.shop .shipbuy img{height:52px;width:auto;max-width:80px;object-fit:contain;background:var(--pic);border-radius:10px;padding:3px;flex:none}
+.shop .shipbuy span{display:flex;flex-direction:column}
+.shop .empty.shipbuy{text-align:center;font-weight:900}
+/* コイン・たべものは もっている かずだけ えで ならべる(5こずつ すきま) */
+.pile{display:flex;flex-wrap:wrap;align-items:center;gap:4px 3px}
+.pile .pi{display:inline-grid;place-items:center;width:26px;height:26px;flex:none}
+.pile .pi img{width:26px;height:26px;object-fit:contain}
+.pile .pi svg{width:26px;height:26px;color:#3A86B8}
+.pile .pi:nth-child(5n){margin-right:9px}
+.pile button.pi{border:2px solid var(--sea);border-radius:8px;background:var(--pic);width:34px;height:34px;padding:0}
+.pile button.pi[disabled]{opacity:.5;cursor:not-allowed}
+.pile .none{font-size:13px;color:var(--muted)}
+.res{display:grid;grid-template-columns:4.6em minmax(0,1fr);gap:8px 6px;align-items:center;margin-top:10px}
+.res>.lb{font-size:12px;font-weight:900;color:var(--muted)}
+.res .shipmini{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:900}
+.res .shipmini img{height:34px;width:auto;object-fit:contain;background:var(--pic);border-radius:8px;padding:2px}
 .panel.inv.me{border:3px solid var(--pc)}
 .me .gtag{white-space:normal;line-height:1.3;padding:1px 6px}
 .me .subhead{margin:14px 0 4px;color:var(--ink)}
@@ -478,10 +495,10 @@ const toolGradeText=t=>t.wild?'ぜんぶの グレードで つかえる':`グ�
 const cat=id=>CATS.find(c=>c.id===id), tool=id=>TOOLS.find(t=>t.id===id);
 /* 船(グレード): food=必要な食料(ひっす), xcat=追加できる猫(にんい), tool=追加できる道具(にんい)。猫1匹はどの船もひっす */
 const SHIPS={
- 1:{name:'スループ',food:1,xcat:0,tool:0,base:2,img:IMG.ship_1},
- 2:{name:'ブリガンティン',food:2,xcat:1,tool:1,base:3,img:IMG.ship_2},
- 3:{name:'ガレオン',food:4,xcat:2,tool:2,base:4,img:IMG.ship_3},
- 4:{name:'かいぞくせん',food:6,xcat:3,tool:4,base:5,img:IMG.ship_4}};
+ 1:{cost:0,name:'スループ',food:1,xcat:0,tool:0,base:2,img:IMG.ship_1},
+ 2:{cost:2,name:'ブリガンティン',food:2,xcat:1,tool:1,base:3,img:IMG.ship_2},
+ 3:{cost:3,name:'ガレオン',food:4,xcat:2,tool:2,base:4,img:IMG.ship_3},
+ 4:{cost:4,name:'かいぞくせん',food:6,xcat:3,tool:4,base:5,img:IMG.ship_4}};
 /* 冒険は かならず「きほんコイン」がもらえる(しっぱいなし)。カードの じょうけん(ねこ・どうぐ)を みたすと「ボーナス」が ふえる */
 /* reward = めくると もらえる どうぐ(グレード4は なし)。ぼうけんカード・どうぐカードは 1かい てに いれたら おしまい(やまに もどらない) */
 const C=(g,key,place,bonus,note,cs,ca,ts,reward=null)=>({g,key,place,bonus,note,cats:{spec:cs,any:ca},tools:{spec:ts,any:0},reward});
@@ -509,7 +526,8 @@ const CARDS=[
  C(4,'canyon','グランドキャニオン',6,'アメリカの ふかい たにが つづく、おおきな がけ。',['yaruki'],2,['telescope']),
  C(4,'sahara','サハラさばく',7,'せかいさいだいの あつい さばく。',['kiriri'],2,['telescope']),
  C(4,'antarctic','なんきょく',8,'せかいで いちばん さむい ばしょ。ペンギンが いる。',['warudakumi'],2,['compass'])];
-const GOALS=[20,25,30];
+const GOALS=[15,20,25];
+const recGoal=n=>n===2?20:15;   // にんずうごとの おすすめ(しさんで きめた)
 
 /* ===== ユーティリティ ===== */
 const $=(s,r=document)=>r.querySelector(s);
@@ -529,7 +547,7 @@ const PNAME=i=>`プレイヤー${i+1}`;
 const badge=(i,size=44)=>`<span class="badge" style="--pc:var(--p${i+1});--bs:${size}px" role="img" aria-label="${PNAME(i)}">${I_PERSON}<b>${i+1}</b></span>`;
 
 /* ===== ゲーム状態 ===== */
-let G=null; let ui={modal:null,toast:null,players:3,goal:25,tab:'shop'};
+let G=null; let ui={modal:null,toast:null,players:3,goal:15,tab:'shop'};
 function newDecks(){
   const d={cat:[],adv:{}};
   d.cat=shuffle(CATS.flatMap(c=>Array(8).fill(c.id)));
@@ -541,7 +559,7 @@ const TOOL_TOTAL=CARDS.filter(c=>c.reward).length;
 const emptySel=()=>({ship:null,food:0,cats:[],tools:[]});
 function startGame(n){
   G={phase:'pass',cur:0,round:1,goal:ui.goal,log:[],decks:newDecks(),winner:null,winners:[],endBy:null,drawn:null,result:null,
-     players:Array.from({length:n},(_,i)=>({i,name:PNAME(i),coins:3,food:1,cats:[],tools:[],places:[],turns:0,trips:0})),
+     players:Array.from({length:n},(_,i)=>({i,name:PNAME(i),coins:3,food:1,ship:1,cats:[],tools:[],places:[],turns:0,trips:0})),
      sel:emptySel()};
   log(`はじまり: ぜんいん コイン3まい・たべもの1こ ・ コイン${G.goal}まいで かち`);
   render();
@@ -560,7 +578,14 @@ function beginTurn(){
 }
 function toast(msg){ui.toast=msg;renderToast();clearTimeout(toast.t);toast.t=setTimeout(()=>{ui.toast=null;renderToast()},1900)}
 function autoFood(){ if(G.sel.ship){G.sel.food=Math.min(SHIPS[G.sel.ship].food,P().food)} }
+function buyShip(){
+  const p=P(),g=p.ship+1; if(g>4)return;
+  const x=SHIPS[g]; if(p.coins<x.cost){toast(`コインが たりないよ(${x.cost}まい いる)`);return}
+  p.coins-=x.cost; p.ship=g; G.drawn={kind:'ship',g};
+  log(`${p.name}: ${x.name}(グレード${g})を かった`); render();
+}
 function buy(what){
+  if(what==='ship')return buyShip();
   const p=P(); if(p.coins<1){toast('コインが たりないよ');return}
   p.coins-=1;
   if(what==='food'){p.food+=1;G.drawn={kind:'food'};log(`${p.name}: たべものを かった`);autoFood()}
@@ -570,6 +595,7 @@ function buy(what){
 /* ひっす(たべもの・ねこ1ぴき)が そろっていない ふねは えらべない */
 function shipState(g){
   const p=P(),x=SHIPS[g],reasons=[];
+  if(g>p.ship)return{ok:false,locked:true,reasons:[`まだ もっていない ふね(かいもので ${x.cost}コイン)`]};
   if(!advLeft(g))return{ok:false,gone:true,reasons:['もう いける ばしょが ない']};
   const mf=Math.max(0,x.food-p.food);
   if(mf)reasons.push(`たべもの あと${mf}こ`);
@@ -757,7 +783,7 @@ function playersStrip(){
     <div class="pl ${p.i===G.cur&&G.phase!=='win'?'now':''}" style="--pc:var(--p${p.i+1})">${badge(p.i,40)}
       <div class="grow"><div class="nm">${esc(p.name)}</div>
       <div class="nums"><span>コイン <b>${p.coins}</b>/${G.goal}</span><span>たべもの <b>${p.food}</b></span><span>ばしょ <b>${p.places.length}</b></span></div><div class="pbar" aria-hidden="true"><i style="width:${Math.min(100,Math.round(p.coins/G.goal*100))}%"></i></div></div>
-      <div class="items"><div class="irow"><span class="lb">ねこ</span>${miniItems(p.cats,CATS)}</div><div class="irow"><span class="lb">どうぐ</span>${miniItems(p.tools,TOOLS)}</div></div></div>`).join('')}</div>`;
+      <div class="items"><div class="irow"><span class="lb">ふね</span><span class="mi" title="${esc(SHIPS[p.ship].name)}"><img src="${SHIPS[p.ship].img}" alt="${esc(SHIPS[p.ship].name)}"></span><span class="none">グレード${p.ship}</span></div><div class="irow"><span class="lb">ねこ</span>${miniItems(p.cats,CATS)}</div><div class="irow"><span class="lb">どうぐ</span>${miniItems(p.tools,TOOLS)}</div></div></div>`).join('')}</div>`;
 }
 function topbar(){return `<div class="topbar"><span class="small muted">しさくばん(ばしょ・かず・えは かり)</span><span class="row"><button class="btn ghost" data-act="rules">ルール</button><button class="btn ghost" data-act="cards">カードいちらん</button><button class="btn ghost mutebtn" data-act="mute" aria-pressed="${snd.mute}" aria-label="おんがく ${snd.mute?'いま ミュート':'いま オン'}">${snd.mute?'🔇':'🔊'}</button></span></div>`}
 function logBox(){return G&&G.log.length?`<details class="log"><summary>きろく</summary><ol>${G.log.slice(0,12).map(l=>`<li>${esc(l)}</li>`).join('')}</ol></details>`:''}
@@ -835,46 +861,56 @@ function headFrame(tab){
     return t?`<div class="hand">${t}</div>`:`<div class="empty">${own.length?'ぜんぶ ふねに のせたよ。':(kind==='cats'?'ねこを まだ もっていないよ。「ねこを ひく」で あつめよう。':'どうぐを まだ もっていないよ。ぼうけんの ほうびで もらえるよ。')}</div>`;
   };
   const foodLeft=p.food-(sail?sel.food:0);
+  const coinPile=p.coins?`<div class="pile" role="img" aria-label="コイン ${p.coins}まい">${Array.from({length:p.coins},()=>`<span class="pi"><img src="${IMG.coin}" alt=""></span>`).join('')}</div>`:'<div class="pile"><span class="none">なし</span></div>';
+  const fishIc=I_FISH_BIG.replace('class="ic"','class="ic" style="width:26px;height:26px"');
+  const foodPile=foodLeft<=0?`<div class="pile"><span class="none">${p.food&&sail?'ぜんぶ ふねに のせたよ':'なし(かいもので かえるよ)'}</span></div>`
+    :sail?`<div class="pile">${Array.from({length:foodLeft},()=>`<button class="pi" data-act="load" data-kind="food" ${has?'':'disabled'} aria-label="たべものを 1こ ふねに のせる">${fishIc}</button>`).join('')}</div>`
+    :`<div class="pile" role="img" aria-label="たべもの ${foodLeft}こ">${Array.from({length:foodLeft},()=>`<span class="pi">${fishIc}</span>`).join('')}</div>`;
+  const res=`<div class="res"><span class="lb">コイン</span>${coinPile}<span class="lb">たべもの</span>${foodPile}
+    <span class="lb">ふね</span><div class="shipmini"><img src="${SHIPS[p.ship].img}" alt="">${esc(SHIPS[p.ship].name)}(グレード${p.ship}まで のれる)</div></div>`;
   const foodTile=!sail?'':foodLeft>0?`<div class="hand"><button class="tile" data-act="load" data-kind="food" ${has?'':'disabled'} aria-label="たべものを ふねに のせる"><span class="pic"><span style="color:#3A86B8">${I_FISH_BIG.replace('class="ic"','class="ic" style="width:40px;height:40px"')}</span></span><span class="own">×${foodLeft}</span><span class="nm">たべもの</span></button></div>`:`<div class="empty">${p.food?'ぜんぶ ふねに のせたよ。':'たべものが ないよ。かいもので かえるよ。'}</div>`;
-  const note=sail?(has?'タップで ふねに のせる':'ふねを えらぶと のせられるよ'):'みるだけ';
+  const note=sail?(has?'ねこ・どうぐ・たべものを タップで ふねに のせる':'ふねを えらぶと のせられるよ'):'みるだけ';
   return `<section class="panel inv me" style="--pc:var(--p${p.i+1})">
     <div class="turnhead">${badge(p.i,56)}<div class="grow"><h2>${esc(p.name)}の ばん</h2>
-      <div class="row" style="margin-top:6px"><span class="chip">${coinImg}コイン ${p.coins}</span><span class="chip">${I_FISH}たべもの ${p.food}</span><span class="chip">ばしょ ${p.places.length}</span></div></div></div>
+      <div class="row" style="margin-top:6px"><span class="chip">いった ばしょ ${p.places.length}</span></div></div></div>
+    ${res}
     <div class="subhead">もっている もの <span class="small" style="font-weight:700">(${note})</span></div>
     <div class="subhead sm">ねこ</div>${tiles('cats')}
     <div class="subhead sm">どうぐ</div>${tiles('tools')}
-    ${sail?`<div class="subhead sm">たべもの</div>${foodTile}`:''}
   </section>`;
 }
 function viewTurn(){
   const p=P(),s=G.sel,chk=sailCheck(),sh=s.ship?SHIPS[s.ship]:null,drawn=G.drawn;
   const drawnHtml=!drawn?`<span class="muted small">ひいたカードが ここに でるよ</span>`:
     drawn.kind==='food'?`<span class="chip">${I_FISH}+1</span><b>たべものを かった</b>`:
+    drawn.kind==='ship'?`<img src="${SHIPS[drawn.g].img}" alt=""><b>${esc(SHIPS[drawn.g].name)}(グレード${drawn.g})を かった！ つぎから のれるよ</b>`:
     `<img src="${cat(drawn.id).img}" alt=""><b>${esc(cat(drawn.id).name)}を ひいた！</b>`;
   const ships=[1,2,3,4].map(g=>{const x=SHIPS[g],st=shipState(g),off=!st.ok;return `
     <button class="ship ${off?'off':''}" data-act="ship" data-g="${g}" aria-pressed="${s.ship===g}" ${off?'disabled':''} ${off?`aria-label="${x.name}(いまは えらべない: ${esc(st.reasons.join('、'))})"`:''}>
       <div class="pic"><img src="${x.img}" alt=""></div>
-      <div class="nm">${x.name}<small>グレード${g}</small></div>
+      <div class="nm">${x.name}<small>グレード${g}${g<=p.ship?' ・ もっている':` ・ ${x.cost}コインで かえる`}</small></div>
       <div class="places"><b>いける ばしょ のこり ${advLeft(g)}/${placesOf(g).length}</b>${placesOf(g).map(c=>G.decks.adv[g].includes(c)?esc(c.place):`<s>${esc(c.place)}</s>`).join('・')}</div>
       <div class="need">
         <div><span class="tag req">ひっす</span> <span class="nw">たべもの <b>${x.food}</b></span> <span class="nw">ねこ <b>1</b></span></div>
         <div><span class="tag opt">にんい</span> ${x.xcat||x.tool?`<span class="nw">ねこ <b>+${x.xcat}</b></span> <span class="nw">どうぐ <b>+${x.tool}</b></span>`:'なし'}</div>
         <div>きほん <b>+${x.base}</b>コイン${maxBonus(g)?` ・ ボーナス <b>さいだい+${maxBonus(g)}</b>`:' ・ ボーナスなし'}</div>
       </div>
-      ${off?`<div class="lackmsg">${st.gone?'':'いまは えらべない: '}${esc(st.reasons.join('・'))}</div>`:''}</button>`}).join('');
+      ${off?`<div class="lackmsg">${st.gone||st.locked?'':'いまは えらべない: '}${esc(st.reasons.join('・'))}</div>`:''}</button>`}).join('');
   const optInfo=sh?`<span class="ck opt">にんい: ねこ ${Math.max(0,s.cats.length-1)}/${sh.xcat} ・ どうぐ ${s.tools.length}/${sh.tool}</span>`:'';
   const checks=sh?`<span class="ck ${chk.foodOk?'ok':'ng'}">ひっす たべもの ${s.food}/${sh.food}</span><span class="ck ${chk.catOk?'ok':'ng'}">ひっす ねこ ${Math.min(1,s.cats.length)}/1</span>${optInfo}`:'';
   const tab=ui.tab==='sail'&&s.ship?'sail':ui.tab==='ship'||ui.tab==='sail'?'ship':'shop';
-  const lack=[1,2,3,4].some(g=>{const st=shipState(g);return !st.ok&&!st.gone});
+  const lack=[1,2,3,4].some(g=>{const st=shipState(g);return !st.ok&&!st.gone})||p.ship<4;
   const tabs=`<div class="tabs" role="tablist" aria-label="がめんを きりかえる">
     <button role="tab" id="tab-shop" aria-controls="tabpanel" data-act="tab" data-t="shop" aria-selected="${tab==='shop'}">${I_CART}<span class="tl">かいもの</span></button>
     <button role="tab" id="tab-ship" aria-controls="tabpanel" data-act="tab" data-t="ship" aria-selected="${tab==='ship'}">${I_SHIP}<span class="tl">ふねを えらぶ</span></button>
     <button role="tab" id="tab-sail" aria-controls="tabpanel" data-act="tab" data-t="sail" aria-selected="${tab==='sail'}" ${s.ship?'':'disabled title="さきに ふねを えらんでね"'}>${I_LOAD}<span class="tl">しゅっこう<br>じゅんび</span></button></div>`;
   const head=headFrame(tab);
-  const shopView=`<section class="panel"><h2>かいもの <span class="small muted">(どれも 1コイン)</span></h2>
+  const shopView=`<section class="panel"><h2>かいもの <span class="small muted">(たべもの・ねこは 1コイン)</span></h2>
     <div class="shop">
       <button class="btn" data-act="buy" data-w="food" ${p.coins<1?'disabled':''}>たべもの<small>+1こ</small></button>
       <button class="btn" data-act="buy" data-w="cat" ${p.coins<1?'disabled':''}>ねこを ひく<small>うらむきの やま</small></button>
+      ${p.ship<4?`<button class="btn gold shipbuy" data-act="buy" data-w="ship" ${p.coins<SHIPS[p.ship+1].cost?'disabled':''}><img src="${SHIPS[p.ship+1].img}" alt=""><span>ふねを かう: ${esc(SHIPS[p.ship+1].name)}(グレード${p.ship+1})<small>${SHIPS[p.ship+1].cost}コイン ・ かった ふねは ずっと つかえる</small></span></button>`
+        :`<div class="empty shipbuy">ぜんぶの ふねを もっているよ！</div>`}
     </div>
     <div class="drawn" aria-live="polite">${drawnHtml}</div>
     <p class="small muted" style="margin:8px 0 0">どうぐは かえないよ。ぼうけんカードの「ほうび」で もらえるよ。</p>
@@ -882,7 +918,7 @@ function viewTurn(){
   <div class="sailbar"><div class="sailrow"><span class="hint">かいものが おわったら、ふねを えらぼう</span>
     <div class="sailbtns"><button class="btn ghost" data-act="skip">しゅっこうしない</button><button class="btn gold big" data-act="tab" data-t="ship">ふねを えらぶ</button></div></div></div>`;
   const shipView=`<section class="panel"><h2>ふねを えらぶ</h2>
-    <p class="small muted" style="margin:-4px 0 10px">ふねを えらぶと、しゅっこう じゅんびの がめんに かわるよ。グレーの ふねは、いまは えらべないよ(たべもの・ねこが たりない／いける ばしょが もう ない)。ぼうけんは かならず コインが もらえるよ。ぼうけんカードは のこり ${advTotal()}まい。ぜんぶ なくなったら おしまい！</p>
+    <p class="small muted" style="margin:-4px 0 10px">ふねを えらぶと、しゅっこう じゅんびの がめんに かわるよ。グレーの ふねは、いまは えらべないよ(まだ もっていない／たべもの・ねこが たりない／いける ばしょが もう ない)。ふねは かいもので かえるよ。ぼうけんは かならず コインが もらえるよ。ぼうけんカードは のこり ${advTotal()}まい。ぜんぶ なくなったら おしまい！</p>
     ${lack?`<div class="row" style="margin:-2px 0 10px"><button class="btn ghost" data-act="tab" data-t="shop">${I_CART.replace('<svg','<svg style="width:20px;height:20px;display:inline-block;vertical-align:-4px;margin-right:4px"')}かいものに もどる</button></div>`:''}
     <div class="ships">${ships}</div></section>
   <div class="sailbar"><div class="sailrow"><span class="hint">${s.ship?`いまの ふね: ${esc(SHIPS[s.ship].name)}`:'しゅっこうする ふねを えらんでね'}</span>
@@ -931,8 +967,8 @@ function viewWin(){
     :`ぼうけんカードが ぜんぶ なくなったので おしまい。コインが いちばん おおい ${w.coins}まい！`;
   return `${topbar()}<section class="panel winbox"><div class="row" style="justify-content:center">${ws.map(x=>badge(x.i,ws.length>1?88:120)).join('')}</div>
     <h1>${head}</h1><p style="margin:0">${msg}</p>
-    <div class="scroll" style="width:100%"><table class="t"><thead><tr><th>プレイヤー</th><th>ばん</th><th>しゅっこう</th><th>コイン</th><th>いった ばしょ</th></tr></thead><tbody>
-    ${G.players.map(p=>`<tr><td><span class="row" style="gap:8px;flex-wrap:nowrap">${badge(p.i,24)}${esc(p.name)}</span></td><td>${p.turns}</td><td>${p.trips}</td><td>${p.coins}</td><td>${p.places.map(k=>esc(CARDS.find(c=>c.key===k).place)).join('・')||'—'}</td></tr>`).join('')}</tbody></table></div>
+    <div class="scroll" style="width:100%"><table class="t"><thead><tr><th>プレイヤー</th><th>ばん</th><th>しゅっこう</th><th>コイン</th><th>ふね</th><th>いった ばしょ</th></tr></thead><tbody>
+    ${G.players.map(p=>`<tr><td><span class="row" style="gap:8px;flex-wrap:nowrap">${badge(p.i,24)}${esc(p.name)}</span></td><td>${p.turns}</td><td>${p.trips}</td><td>${p.coins}</td><td>グレード${p.ship}</td><td>${p.places.map(k=>esc(CARDS.find(c=>c.key===k).place)).join('・')||'—'}</td></tr>`).join('')}</tbody></table></div>
     <div class="row"><button class="btn gold big" data-act="again">もういちど</button><button class="btn ghost" data-act="toSetup">はじめの がめんへ</button></div></section>${logBox()}`;
 }
 function render(){
@@ -946,10 +982,11 @@ function renderModal(){
   if(!m){m=document.createElement('div');m.id='modal';m.className='modal';$('#layer').appendChild(m)}
   const rule=`<h2>ルール</h2>
    <h3>かち</h3><ul><li>コインが ${(G&&G.goal)||ui.goal}まい あつまった ひとの かち(ぼうけんの あとに かぞえる)。</li><li>そのまえに ぼうけんカードが ぜんぶ なくなったら おしまい。コインが いちばん おおい ひとの かち(おなじなら みんな かち)。</li><li>かいものでも コインを つかうので、ためる か つかう かを かんがえよう。</li></ul>
-   <h3>はじまり</h3><ul><li>プレイヤーは にんげん(2〜4にん)。ねこは ふねに のる せんいん カード。</li><li>コイン3まい・たべもの1こ。まいばん コイン+1・たべもの+1。</li></ul>
+   <h3>はじまり</h3><ul><li>プレイヤーは にんげん(2〜4にん)。ねこは ふねに のる せんいん カード。</li><li>コイン3まい・たべもの1こ・グレード1の ふね(スループ)。まいばん コイン+1・たべもの+1。</li></ul>
    <h3>じぶんの ばん</h3><ul>
     <li><b>かいもの:</b> 1コインで、たべもの・ねこを かえる。ねこは うらむきの やまから ひく。どうぐは かえない。</li>
-    <li><b>ふねを えらぶ:</b> グレード1〜4。たかい ふねほど たべものが いる。ひっすの たべもの・ねこが そろっていない ふねは、グレーで えらべない。</li>
+    <li><b>ふねを かう:</b> コインで、1つ うえの グレードの ふねを かえる(グレード2: ${SHIPS[2].cost}コイン、3: ${SHIPS[3].cost}コイン、4: ${SHIPS[4].cost}コイン)。1かいに 1つずつ。かった ふねは ずっと つかえる。</li>
+    <li><b>ふねを えらぶ:</b> もっている ふねの グレードまでなら、どの ふねでも えらべる。たかい ふねほど たべものが いる。ひっすの たべもの・ねこが そろっていない ふねは、グレーで えらべない。</li>
     <li><b>ふねに のせる:</b> 「もっている もの」から、ふねの わくに カードを うつす。
       <ul><li><span class="tag req">ひっす</span> たべもの(ふねで きまった かず)と、ねこ 1ぴき。これが ないと しゅっこうできない。</li>
       <li><span class="tag opt">にんい</span> おまけの ねこ・どうぐ。のせなくても いいよ。ふねの わくの かずまで。</li></ul></li>
@@ -961,7 +998,7 @@ function renderModal(){
     <li>「おうえんのはた」を のせると、どんな じょうけんでも ボーナスが もらえる。</li></ul>
    <h3>どうぐ(つかう グレード)</h3><ul>${TOOLS.map(x=>`<li><b>${esc(x.name)}</b>: ${toolGradeText(x)}</li>`).join('')}<li>どうぐは、きめられた グレードの ふねにだけ のせられる(おうえんのはたは どの ふねでも いい)。</li><li>どうぐは ぼうけんの ほうびだけで てに はいる(ぜんぶで ${TOOL_TOTAL}まい)。ひくい グレードの ぼうけんで、つぎの グレードの どうぐが もらえるよ。</li><li>おうえんのはたは、グレード3の ぼうけんで しか もらえない(2まいだけ)。</li></ul>
    <h3>メモ</h3><ul><li>「なんでも」は、どの ねこ・どうぐでも よい。「してい」は カードに かかれた ねこ・どうぐ。</li><li>この アプリは しさくばんです。かず・ばしょ・えは かりです。</li></ul>`;
-  const cl=`<h2>カードいちらん(かり)</h2>`+[1,2,3,4].map(g=>`<h3>グレード${g} ${SHIPS[g].name} ・ きほん +${SHIPS[g].base}コイン</h3><div class="cl">${CARDS.filter(c=>c.g===g).map(c=>`<div class="it"><div class="th">${ARTSVG(c.key)}</div><div class="tx"><b>${esc(c.place)}</b><span>${c.bonus>0?`ボーナス +${c.bonus}`:'ボーナスなし'} ・ ほうび: ${c.reward?esc(tool(c.reward).name):'なし'}</span><span class="muted">${c.bonus>0?`じょうけん ねこ: ${[...c.cats.spec.map(i=>cat(i).name),...(c.cats.any?[`なんでも×${c.cats.any}`]:[])].join('+')||'なし'} / どうぐ: ${[...c.tools.spec.map(i=>tool(i).name),...(c.tools.any?[`なんでも×${c.tools.any}`]:[])].join('+')||'なし'}`:'どんな ねこでも いいよ'}</span></div></div>`).join('')}</div>`).join('')+`<p class="small muted">じょうけんの ねこの かずは、のせた ねこの ぜんぶ(ひっすの 1ぴきも ふくむ)。ぼうけんカードは 1しゅるい 1まい(ぜんぶで ${CARDS.length}まい)。めくったら もどらない。どうぐカードは ほうびの ぶんだけ(${TOOL_TOTAL}まい)。</p>`;
+  const cl=`<h2>カードいちらん(かり)</h2>`+[1,2,3,4].map(g=>`<h3>グレード${g} ${SHIPS[g].name} ・ きほん +${SHIPS[g].base}コイン ・ ${g===1?'さいしょから もっている':`ふねは ${SHIPS[g].cost}コイン`}</h3><div class="cl">${CARDS.filter(c=>c.g===g).map(c=>`<div class="it"><div class="th">${ARTSVG(c.key)}</div><div class="tx"><b>${esc(c.place)}</b><span>${c.bonus>0?`ボーナス +${c.bonus}`:'ボーナスなし'} ・ ほうび: ${c.reward?esc(tool(c.reward).name):'なし'}</span><span class="muted">${c.bonus>0?`じょうけん ねこ: ${[...c.cats.spec.map(i=>cat(i).name),...(c.cats.any?[`なんでも×${c.cats.any}`]:[])].join('+')||'なし'} / どうぐ: ${[...c.tools.spec.map(i=>tool(i).name),...(c.tools.any?[`なんでも×${c.tools.any}`]:[])].join('+')||'なし'}`:'どんな ねこでも いいよ'}</span></div></div>`).join('')}</div>`).join('')+`<p class="small muted">じょうけんの ねこの かずは、のせた ねこの ぜんぶ(ひっすの 1ぴきも ふくむ)。ぼうけんカードは 1しゅるい 1まい(ぜんぶで ${CARDS.length}まい)。めくったら もどらない。どうぐカードは ほうびの ぶんだけ(${TOOL_TOTAL}まい)。</p>`;
   m.innerHTML=`<div class="sheet" role="dialog" aria-modal="true">${ui.modal==='rules'?rule:cl}<button class="btn" data-act="close">とじる</button></div>`;
 }
 
@@ -970,7 +1007,7 @@ document.addEventListener('click',e=>{
   const t=e.target.closest('[data-act]');
   if(!t){if(e.target.id==='modal'){ui.modal=null;renderModal()}return}
   const a=t.dataset.act;
-  if(a==='players'){ui.players=+t.dataset.n;render()}
+  if(a==='players'){ui.players=+t.dataset.n;ui.goal=recGoal(ui.players);render()}
   else if(a==='goal'){ui.goal=+t.dataset.n;render()}
   else if(a==='start')startGame(ui.players);
   else if(a==='begin'){beginTurn();render()}
