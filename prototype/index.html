@@ -95,15 +95,37 @@ h1,h2,h3{margin:0;text-wrap:balance}
 .mi img{max-width:24px;max-height:24px;object-fit:contain}
 .mi b{position:absolute;right:-6px;bottom:-6px;min-width:17px;height:17px;border-radius:99px;background:var(--ink);color:var(--bg);font-size:10px;font-weight:900;line-height:17px;text-align:center;padding:0 4px}
 /* がめんの きりかえ(かいもの / しゅっこう じゅんび) */
-.tabs{position:sticky;top:8px;z-index:6;display:grid;grid-template-columns:repeat(2,1fr);gap:6px;background:var(--surface);border-radius:18px;padding:6px;box-shadow:0 4px 14px var(--shadow)}
-.tabs button{border:0;border-radius:14px;min-height:54px;font-weight:900;font-size:15px;background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:8px;padding:6px 8px;line-height:1.2}
-.tabs button svg{width:22px;height:22px;flex:none}
-.tabs button{white-space:normal;text-align:center}
-.tabs button[disabled]{opacity:.45;cursor:not-allowed}
-.tabs .tl{white-space:nowrap;line-height:1.25}
-@media(max-width:520px){.tabs button{font-size:14px;padding:4px}.tabs button svg{display:none}}
-.tabs button[aria-selected="true"]{background:var(--sea);color:var(--on-sea);box-shadow:0 3px 0 var(--shadow)}
-.tabs button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+/* しつもん(ユーザが こたえる ところ) と じょうほう(みるだけ) を わける */
+.stepper{display:flex;gap:4px;align-items:center;justify-content:center;flex-wrap:wrap}
+.stepper{flex-wrap:nowrap}
+.stepper span{white-space:nowrap;border-radius:999px;padding:3px 9px;font-size:12px;font-weight:900;background:var(--surface);color:var(--muted);border:2px solid var(--line)}
+.stepper span.now{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.stepper span.done{color:var(--good);border-color:var(--good)}
+.stepper i{color:var(--muted);font-style:normal}
+.qcard{background:var(--surface);border:4px solid var(--accent);border-radius:24px;padding:16px;display:flex;flex-direction:column;gap:14px;box-shadow:0 6px 0 color-mix(in srgb,var(--accent) 35%,transparent)}
+.qcard .qh{display:flex;gap:12px;align-items:flex-start}
+.qcard .qmark{flex:none;width:44px;height:44px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-family:var(--f-disp);font-size:24px;display:grid;place-items:center}
+.qcard .q{font-family:var(--f-disp);font-size:clamp(22px,6vw,28px);line-height:1.3;margin:0}
+.qcard .qs{font-size:14px;color:var(--muted);font-weight:700;margin-top:4px}
+.qcard .qbody{background:var(--surface2);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.answers{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.answers .btn{min-height:72px;font-size:20px;border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;line-height:1.2}
+.answers .btn small{font-size:12px;font-weight:700;opacity:.9}
+.answers .btn.yes{background:var(--accent);color:var(--accent-ink)}
+.answers .btn.no{background:var(--surface);color:var(--ink);border:3px solid var(--line);box-shadow:none}
+.answers.one{grid-template-columns:1fr}
+.qback{align-self:flex-start;background:none;border:0;color:var(--sea);font-weight:900;font-size:14px;padding:4px 0;text-decoration:underline}
+.cmp{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;text-align:center}
+.cmp .shp{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;font-weight:900}
+.cmp .shp img{height:64px;width:auto;max-width:100%;object-fit:contain;background:var(--pic);border-radius:10px;padding:3px}
+.cmp .arr{font-size:26px;color:var(--accent);font-weight:900}
+.facts{display:flex;flex-direction:column;gap:4px;font-size:14px}
+.facts div{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dashed var(--line);padding:3px 0}
+.facts b{white-space:nowrap}
+.note-ok{background:var(--good-soft);color:var(--good);border-radius:12px;padding:8px 12px;font-weight:900}
+.note-ng{background:var(--bad-soft);color:var(--bad);border-radius:12px;padding:8px 12px;font-weight:900}
+.infohd{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:900;color:var(--muted);margin:4px 0 -6px}
+.infohd .itag{background:var(--line);color:var(--ink);border-radius:999px;padding:1px 10px;font-size:12px}
 .tile.ro{cursor:default}
 .fslots{display:flex;flex-wrap:wrap;gap:8px}
 .fslot{width:78px;height:78px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:10px;font-weight:900;text-align:center;line-height:1.2}
@@ -623,7 +645,7 @@ function drawAdv(g){ return G.decks.adv[g].pop()||null }
 function advGrade(p){ for(let g=p.ship;g>=1;g--) if(advLeft(g)) return g; return null }
 function beginTurn(){
   const p=P(); p.coins+=1; p.food+=1; p.turns+=1;
-  G.sel=emptySel(); G.sel.ship=p.ship; G.drawn=null; G.phase='turn'; ui.tab='shop';
+  G.sel=emptySel(); G.sel.ship=p.ship; G.drawn=null; G.phase='turn'; ui.step=p.ship<4?'upgrade':'sail';
   log(`${p.name}の ばん: コイン+1・たべもの+1`);
 }
 function toast(msg){ui.toast=msg;renderToast();clearTimeout(toast.t);toast.t=setTimeout(()=>{ui.toast=null;renderToast()},1900)}
@@ -631,14 +653,14 @@ function buyShip(){
   const p=P(),g=p.ship+1; if(g>4)return;
   const x=SHIPS[g]; if(p.coins<x.cost){toast(`コインが たりないよ(${x.cost}まい いる)`);return}
   p.coins-=x.cost; p.ship=g; G.sel.ship=g; G.drawn={kind:'ship',g};
-  log(`${p.name}: ふねを グレードアップ → ${x.name}(グレード${g})`); render();
+  log(`${p.name}: ふねを グレードアップ → ${x.name}(グレード${g})`);
 }
-function buy(what){ if(what==='ship')buyShip() }
+function buy(what){ if(what==='ship'){buyShip();ui.step='sail';render()} }
 /* しゅっこうに いるのは たべものだけ。たりない ぶんは 1コインで 1こ じどうで かう */
 function foodPlan(p){ const need=SHIPS[p.ship].food,have=Math.min(need,p.food),buy=need-have; return{need,have,buy} }
 function sailCheck(){
   const p=P();
-  if(!advGrade(p))return{ok:false,gone:true,msg:p.ship<4?'いける ばしょが もう ないよ。かいもので ふねを グレードアップしよう':'いける ばしょが もう ないよ'};
+  if(!advGrade(p))return{ok:false,gone:true,msg:p.ship<4?'いける ばしょが もう ないよ。つぎの ばんで ふねを グレードアップしよう':'いける ばしょが もう ないよ'};
   const f=foodPlan(p);
   if(f.buy>p.coins)return{ok:false,msg:`たべものが あと${f.buy}こ たりないよ。コインも たりないので しゅっこう できない`};
   return{ok:true,msg:f.buy?`たりない たべもの ${f.buy}こは、コイン${f.buy}まいで じどうで かうよ`:'しゅっこうの じゅんびが できたよ！'};
@@ -809,32 +831,59 @@ function viewPass(){
     ${badge(p.i,96)}
     <h2 class="disp" style="font-size:26px">${esc(p.name)}の ばん</h2>
     <p class="muted" style="margin:0">${G.round}しゅうめ ・ たんまつを ${esc(p.name)}に わたしてね</p>
-    <button class="btn gold big" data-act="begin">ばんを はじめる<br><small>コイン+1 ・ たべもの+1</small></button>
+    <button class="btn gold big" data-act="begin">ばんを はじめる<br><small>コイン+1 ・ たべもの+1 を もらう</small></button>
+    <p class="small muted" style="margin:0">このあと「グレードアップ しますか？」「しゅっこう しますか？」と じゅんばんに きくので、はい・いいえで こたえてね。</p>
   </section>${logBox()}`;
 }
 
 /* ふねの「のせるわく」 */
-/* しゅっこう じゅんび: たべものを セットする だけ */
-function shipFrame(){
-  const p=P(),sh=SHIPS[p.ship],f=foodPlan(p),ag=advGrade(p);
+/* しつもん 1: ふねを グレードアップ しますか？ */
+function qUpgrade(){
+  const p=P(),cur=SHIPS[p.ship],nx=SHIPS[p.ship+1],can=p.coins>=nx.cost;
+  return `<section class="qcard" aria-labelledby="q1"><div class="qh"><span class="qmark" aria-hidden="true">Q</span><div>
+      <h2 class="q" id="q1">ふねを グレードアップ しますか？</h2><div class="qs">コインを ${nx.cost}まい はらうと、もっと おおきい ふねに なるよ</div></div></div>
+    <div class="qbody">
+      <div class="cmp"><div class="shp"><img src="${cur.img}" alt="">いま: ${esc(cur.name)}<br>グレード${p.ship}</div><span class="arr" aria-hidden="true">→</span>
+        <div class="shp"><img src="${nx.img}" alt="">${esc(nx.name)}<br>グレード${p.ship+1}</div></div>
+      <div class="facts">
+        <div><span>はらう コイン</span><b>${nx.cost}まい(いま ${p.coins}まい → ${Math.max(0,p.coins-nx.cost)}まい)</b></div>
+        <div><span>しゅっこうの たべもの</span><b>${cur.food}こ → ${nx.food}こ</b></div>
+        <div><span>きほんの コイン</span><b>+${cur.base} → +${nx.base}</b></div>
+        <div><span>いける ばしょ</span><b>グレード${p.ship} → グレード${p.ship+1}</b></div>
+      </div>
+      ${can?'':`<div class="note-ng">コインが ${nx.cost-p.coins}まい たりないので、いまは グレードアップ できないよ</div>`}
+    </div>
+    ${can?`<div class="answers"><button class="btn yes" data-act="up-yes">はい<small>${nx.cost}コイン はらう</small></button><button class="btn no" data-act="up-no">いいえ<small>このまま</small></button></div>`
+      :`<div class="answers one"><button class="btn yes" data-act="up-no">つぎへ</button></div>`}
+  </section>`;
+}
+/* しつもん 2: しゅっこう しますか？(たべものは じどうで セット) */
+function qSail(){
+  const p=P(),sh=SHIPS[p.ship],f=foodPlan(p),ag=advGrade(p),chk=sailCheck(),dr=G.drawn;
   const fishIc=I_FISH_BIG.replace('class="ic"','class="ic" style="width:30px;height:30px"');
   const slots=Array.from({length:f.need},(_,i)=>i<f.have
     ?`<div class="fslot have" aria-label="もっている たべもの">${fishIc}<span>もっている</span></div>`
     :`<div class="fslot buy" aria-label="コイン1まいで かう たべもの"><img src="${IMG.coin}" alt=""><span>コイン1で かう</span></div>`).join('');
   const deck=ag?G.decks.adv[ag]:[];
-  const places=ag?`<div class="places2" style="--gc:var(--g${ag})"><span class="gbadge">グレード${ag}の ぼうけんカード のこり ${advLeft(ag)}まい</span>
+  const places=ag?`<div class="places2" style="--gc:var(--g${ag});margin-top:0"><span class="gbadge">グレード${ag}の ぼうけんカード のこり ${advLeft(ag)}まい</span>
       ${ag<p.ship?`<div><b>グレード${p.ship}の カードが もう ないので、グレード${ag}の やまから めくるよ</b></div>`:''}
       <div class="plist">${placesOf(ag).map(c=>{const left=deck.includes(c);if(!left)return `<span class="pl0"><s>${esc(c.place)}</s></span>`;
         const ok=c.bonus>0&&resolve(c,p.cats,p.tools).ok;
-        return `<span class="pl1 ${c.bonus?(ok?'ok':'ng'):''}">${esc(c.place)}${c.bonus?` <i>${ok?'○ ボーナス':'× ボーナス'}+${c.bonus}</i>`:''}</span>`}).join('')}</div>
-      <div class="small muted">○は、いま もっている ねこ・どうぐで ボーナスが もらえる ばしょ。どこに いくかは めくるまで わからないよ。</div></div>`
-    :`<div class="placeholder" style="margin-top:10px">いける ばしょが もう ないよ。${p.ship<4?'かいもので ふねを グレードアップしよう。':''}</div>`;
-  return `<section class="panel shipf"><h2>しゅっこう じゅんび</h2>
-    <div class="shiphead"><div class="pic"><img src="${sh.img}" alt=""></div><div><b>${sh.name}</b><div class="small muted">グレード${p.ship}の ふね ・ きほん +${sh.base}コイン ・ ボーナスで さいだい +${maxBonus(ag||p.ship)}</div></div></div>
-    <div class="grp req"><div class="grpt"><span class="tag req">ひっす</span><span>たべもの ${f.need}こ(じどうで セット)</span></div><div class="fslots">${slots}</div>
-      ${f.buy?`<div class="small" style="margin-top:8px;font-weight:900">たりない ${f.buy}こは、しゅっこうする ときに コイン${f.buy}まいで じどうで かうよ${f.buy>p.coins?'(コインが たりない！)':''}</div>`:''}</div>
-    ${places}
-    <p class="small muted" style="margin:10px 0 0">ねこと どうぐは のせなくて いいよ。ぼうけんカードを めくった ときに もっていれば、じょうけん クリア(つかっても なくならない)。おうえんのはただけは、たりない ときに じどうで つかって なくなる。</p>
+        return `<span class="pl1 ${c.bonus?(ok?'ok':'ng'):''}">${esc(c.place)}${c.bonus?` <i>${ok?'○':'×'} ボーナス+${c.bonus}</i>`:''}</span>`}).join('')}</div>
+      <div class="small muted">○は、いま もっている ねこ・どうぐで ボーナスが もらえる ばしょ。どこに いくかは めくるまで わからないよ。</div></div>`:'';
+  return `<section class="qcard" aria-labelledby="q2">
+    ${dr&&dr.kind==='ship'?`<div class="note-ok">グレードアップ した！ これからは ${esc(SHIPS[dr.g].name)}(グレード${dr.g})で しゅっこう</div>`:''}
+    <div class="qh"><span class="qmark" aria-hidden="true">Q</span><div>
+      <h2 class="q" id="q2">しゅっこう しますか？</h2><div class="qs">${esc(sh.name)}で ぼうけんに でるよ。きほん +${sh.base}コイン${maxBonus(ag||p.ship)?`、ボーナスで さいだい +${maxBonus(ag||p.ship)}`:''}</div></div></div>
+    <div class="qbody">
+      <div><div class="small" style="font-weight:900;margin-bottom:6px">つかう たべもの ${f.need}こ(じどうで セット)</div><div class="fslots">${slots}</div>
+        ${f.buy?`<div class="small" style="margin-top:6px;font-weight:900">たりない ${f.buy}こは、コイン${f.buy}まいで じどうで かうよ</div>`:''}</div>
+      ${places}
+      ${chk.ok?'':`<div class="note-ng">${esc(chk.msg)}</div>`}
+    </div>
+    ${chk.ok?`<div class="answers"><button class="btn yes" data-act="sail">はい<small>しゅっこう！${f.buy?`(コイン${f.buy}まい つかう)`:''}</small></button><button class="btn no" data-act="skip">いいえ<small>この ばんは やすむ</small></button></div>`
+      :`<div class="answers one"><button class="btn yes" data-act="skip">つぎの ひとへ</button></div>`}
+    ${p.ship<4&&!(dr&&dr.kind==='ship')?`<button class="qback" data-act="up-back">← グレードアップの しつもんに もどる</button>`:''}
   </section>`;
 }
 /* もっている もの(もちもの) */
@@ -852,8 +901,8 @@ function headFrame(tab){
   const foodPile=p.food?`<div class="pile" role="img" aria-label="たべもの ${p.food}こ">${Array.from({length:p.food},()=>`<span class="pi">${fishIc}</span>`).join('')}</div>`:'<div class="pile"><span class="none">なし</span></div>';
   const res=`<div class="res"><span class="lb">コイン</span>${coinPile}<span class="lb">たべもの</span>${foodPile}
     <span class="lb">ふね</span><div class="shipmini"><img src="${SHIPS[p.ship].img}" alt="">${esc(SHIPS[p.ship].name)}(グレード${p.ship})</div></div>`;
-  return `<section class="panel inv me" style="--pc:var(--p${p.i+1})">
-    <div class="turnhead">${badge(p.i,56)}<div class="grow"><h2>${esc(p.name)}の ばん</h2>
+  return `<div class="infohd"><span class="itag">じょうほう</span>いまの ${esc(p.name)}(みるだけ)</div><section class="panel inv me" style="--pc:var(--p${p.i+1})">
+    <div class="turnhead">${badge(p.i,56)}<div class="grow"><h2>${esc(p.name)}の もちもの</h2>
       <div class="row" style="margin-top:6px"><span class="chip">いった ばしょ ${p.places.length}</span></div></div></div>
     ${res}
     <div class="subhead">もっている もの <span class="small" style="font-weight:700">(もっていれば じょうけん クリア)</span></div>
@@ -862,32 +911,15 @@ function headFrame(tab){
   </section>`;
 }
 function viewTurn(){
-  const p=P(),s=G.sel,chk=sailCheck(),sh=s.ship?SHIPS[s.ship]:null,drawn=G.drawn;
-  const drawnHtml=!drawn?`<span class="muted small">グレードアップ すると ここに でるよ</span>`:
-    `<img src="${SHIPS[drawn.g].img}" alt=""><b>グレードアップ！ これからは ${esc(SHIPS[drawn.g].name)}(グレード${drawn.g})で しゅっこう</b>`;
-  const f=foodPlan(p);
-  const checks=`<span class="ck ok">たべもの もっている ${f.have}/${f.need}</span>${f.buy?`<span class="ck ${f.buy>p.coins?'ng':'opt'}">コインで かう ${f.buy}こ</span>`:''}`;
-  const tab=ui.tab==='sail'?'sail':'shop';
-  const tabs=`<div class="tabs" role="tablist" aria-label="がめんを きりかえる">
-    <button role="tab" id="tab-shop" aria-controls="tabpanel" data-act="tab" data-t="shop" aria-selected="${tab==='shop'}">${I_CART}<span class="tl">かいもの</span></button>
-    <button role="tab" id="tab-sail" aria-controls="tabpanel" data-act="tab" data-t="sail" aria-selected="${tab==='sail'}">${I_SHIP}<span class="tl">しゅっこう じゅんび</span></button></div>`;
-  const head=headFrame(tab);
-  const shopView=`<section class="panel"><h2>かいもの</h2>
-    <div class="shop">
-      ${p.ship<4?`<button class="btn gold shipbuy" data-act="buy" data-w="ship" ${p.coins<SHIPS[p.ship+1].cost?'disabled':''}><img src="${SHIPS[p.ship+1].img}" alt=""><span>ふねを グレードアップ: ${esc(SHIPS[p.ship+1].name)}(グレード${p.ship+1})<small>${SHIPS[p.ship+1].cost}コイン ・ これからは この ふねで しゅっこう(たべもの ${SHIPS[p.ship+1].food}こ いる)</small></span></button>`
-        :`<div class="empty shipbuy">いちばん おおきい ふねだよ！</div>`}
-    </div>
-    <div class="drawn" aria-live="polite">${drawnHtml}</div>
-    <p class="small muted" style="margin:8px 0 0">ねこと どうぐは かえないよ。ぼうけんカードの ほうびで もらえるよ。たべものは、しゅっこうの ときに たりない ぶんだけ じどうで かうよ(1こ 1コイン)。</p>
-  </section>
-  <div class="sailbar"><div class="sailrow"><span class="hint">かいものが おわったら、しゅっこうの じゅんびを しよう</span>
-    <div class="sailbtns"><button class="btn ghost" data-act="skip">しゅっこうしない</button><button class="btn gold big" data-act="tab" data-t="sail">じゅんびへ すすむ</button></div></div></div>`;
-  const sailView=`${shipFrame()}
-  <div class="sailbar"><div class="checks">${checks}</div>
-    <div class="sailrow"><span class="hint ${chk.ok?'ok':''}">${esc(chk.msg)}</span>
-      <div class="sailbtns"><button class="btn ghost" data-act="skip">しゅっこうしない</button><button class="btn gold big" data-act="sail" ${chk.ok?'':'disabled'}>しゅっこう！</button></div></div></div>`;
-  return `${topbar()}${playersStrip()}${head}${tabs}
-  <div id="tabpanel" role="tabpanel" aria-labelledby="tab-${tab}" style="display:flex;flex-direction:column;gap:16px">${tab==='shop'?shopView:sailView}</div>
+  const p=P(),step=ui.step==='sail'||p.ship>=4?'sail':'upgrade';
+  const stepper=`<div class="stepper" aria-label="すすみかた"><span class="${step==='upgrade'?'now':'done'}">1 グレードアップ</span><i>→</i><span class="${step==='sail'?'now':''}">2 しゅっこう</span><i>→</i><span>3 ぼうけん</span></div>`;
+  return `${topbar()}
+  <div class="turnhead" style="justify-content:center">${badge(p.i,44)}<h2 class="disp" style="font-size:22px">${esc(p.name)}の ばん</h2></div>
+  ${stepper}
+  ${step==='upgrade'?qUpgrade():qSail()}
+  ${headFrame()}
+  <div class="infohd"><span class="itag">じょうほう</span>みんなの ようす(みるだけ)</div>
+  ${playersStrip()}
   ${logBox()}`;
 }
 /* もらった もの(じっさいに てに はいった もの)だけを まとめて みせる */
@@ -961,13 +993,13 @@ function renderModal(){
   let m=$('#modal');if(!ui.modal){m&&m.remove();return}
   if(!m){m=document.createElement('div');m.id='modal';m.className='modal';$('#layer').appendChild(m)}
   const rule=`<h2>ルール</h2>
-   <h3>かち</h3><ul><li>コインが ${(G&&G.goal)||ui.goal}まい あつまった ひとの かち(ぼうけんの あとに かぞえる)。</li><li>そのまえに ぼうけんカードが ぜんぶ なくなったら おしまい。コインが いちばん おおい ひとの かち(おなじなら みんな かち)。</li><li>かいものでも コインを つかうので、ためる か つかう かを かんがえよう。</li></ul>
+   <h3>かち</h3><ul><li>コインが ${(G&&G.goal)||ui.goal}まい あつまった ひとの かち(ぼうけんの あとに かぞえる)。</li><li>そのまえに ぼうけんカードが ぜんぶ なくなったら おしまい。コインが いちばん おおい ひとの かち(おなじなら みんな かち)。</li><li>グレードアップや たべもので コインを つかうので、ためる か つかう かを かんがえよう。</li></ul>
    <h3>はじまり</h3><ul><li>プレイヤーは にんげん(2〜4にん)。ねこは ふねに のる せんいん カード。</li><li>コイン3まい・たべもの1こ・グレード1の ふね(スループ)。ねこと どうぐは なし。まいばん コイン+1・たべもの+1。</li></ul>
    <h3>じぶんの ばん</h3><ul>
-    <li><b>かいもの:</b> ふねの グレードアップだけ。ねこと どうぐは かえない(ぼうけんの ほうびで もらう)。</li>
+    <li><b>しつもん1「ふねを グレードアップ しますか？」:</b> はい なら コインを はらって ふねが 1つ うえの グレードに なる。ねこと どうぐは かえない(ぼうけんの ほうびで もらう)。</li>
     <li><b>ふねの グレードアップ:</b> コインで、ふねを 1つ うえの グレードに できる(グレード2: ${SHIPS[2].cost}コイン、3: ${SHIPS[3].cost}コイン、4: ${SHIPS[4].cost}コイン)。1かいに 1つずつ。</li>
     <li><b>ふね:</b> しゅっこうは いつも いまの ふね(いちばん あたらしい グレード)。たかい ふねほど たべものが いるけれど、きほんの コインが ふえる。</li>
-    <li><b>しゅっこう じゅんび:</b> ふねで きまった かずの たべものを セットする(じどう)。たりない ときは、1コインで 1こ じどうで かう。</li>
+    <li><b>しつもん2「しゅっこう しますか？」:</b> はい なら、ふねで きまった かずの たべものを じどうで セットして しゅっこう。たりない ときは、1コインで 1こ じどうで かう。いいえ なら その ばんは やすむ。</li>
     <li><b>しゅっこう:</b> ふねと おなじ グレードの ぼうけんカードを 1まい めくる。その やまが ない ときは、したの グレードで のこっている いちばん うえの やまから めくる。めくった カードは じぶんの もの(いった ばしょ)。やまには もどらない。</li>
     <li><b>ほうび:</b> ぼうけんカードに かいてある どうぐ(グレード1〜3)と、ねこの やまから ランダムで ねこ 1ぴき(やまが なくなるまで)。</li>
     <li><b>コイン:</b> ぼうけんは しっぱいしない。ふねの「きほん」コインが かならず もらえる。</li>
@@ -989,9 +1021,11 @@ document.addEventListener('click',e=>{
   if(a==='players'){ui.players=+t.dataset.n;ui.goal=recGoal(ui.players);render()}
   else if(a==='goal'){ui.goal=+t.dataset.n;render()}
   else if(a==='start')startGame(ui.players);
-  else if(a==='begin'){beginTurn();render()}
+  else if(a==='begin'){beginTurn();render();window.scrollTo(0,0)}
   else if(a==='buy')buy(t.dataset.w);
-  else if(a==='tab'){ui.tab=t.dataset.t==='sail'?'sail':'shop';render();const tb=$('.tabs');if(tb&&tb.getBoundingClientRect().top<0)tb.scrollIntoView({block:'start'});const f=$(`#tab-${ui.tab}`);f&&f.focus({preventScroll:true})}
+  else if(a==='up-yes'){buyShip();ui.step='sail';render();window.scrollTo({top:$('.stepper').offsetTop-8})}
+  else if(a==='up-no'){ui.step='sail';render();window.scrollTo({top:$('.stepper').offsetTop-8})}
+  else if(a==='up-back'){ui.step='upgrade';render()}
   else if(a==='sail')voyage();
   else if(a==='mute')muteToggle();
   else if(a==='skip')skip();
