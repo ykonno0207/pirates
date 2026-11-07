@@ -85,6 +85,23 @@ h1,h2,h3{margin:0;text-wrap:balance}
 .pl .nm{font-weight:900;font-size:13px;line-height:1.3;white-space:nowrap}
 .pl .nums{display:flex;flex-wrap:wrap;gap:0 10px;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
 .pl .nums b{color:var(--ink)}
+.pl{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:start}
+.pl .items{grid-column:1/-1;display:flex;flex-direction:column;gap:6px;border-top:1px dashed var(--line);padding-top:7px}
+.pl .irow{display:flex;align-items:center;gap:6px 5px;flex-wrap:wrap;min-height:28px}
+.pl .irow .lb{font-size:11px;font-weight:900;color:var(--muted);width:3.4em;flex:none}
+.pl .irow .none{font-size:11px;color:var(--muted)}
+.mi{position:relative;display:inline-grid;place-items:center;width:28px;height:28px;background:var(--pic);border-radius:7px;flex:none}
+.mi img{max-width:24px;max-height:24px;object-fit:contain}
+.mi b{position:absolute;right:-6px;bottom:-6px;min-width:17px;height:17px;border-radius:99px;background:var(--ink);color:var(--bg);font-size:10px;font-weight:900;line-height:17px;text-align:center;padding:0 4px}
+/* がめんの きりかえ(かいもの / しゅっこう じゅんび) */
+.tabs{position:sticky;top:8px;z-index:6;display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--surface);border-radius:18px;padding:6px;box-shadow:0 4px 14px var(--shadow)}
+.tabs button{border:0;border-radius:14px;min-height:54px;font-weight:900;font-size:15px;background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:8px;padding:6px 8px;line-height:1.2}
+.tabs button svg{width:22px;height:22px;flex:none}
+.tabs button{white-space:nowrap}
+@media(max-width:420px){.tabs button{font-size:15px}.tabs button svg{display:none}}
+.tabs button[aria-selected="true"]{background:var(--sea);color:var(--on-sea);box-shadow:0 3px 0 var(--shadow)}
+.tabs button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.tile.ro{cursor:default}
 
 /* 手番の見出し */
 .turnhead{display:flex;gap:14px;align-items:center}
@@ -183,7 +200,8 @@ h1,h2,h3{margin:0;text-wrap:balance}
 .sailrow{display:flex;flex-direction:column;gap:6px}
 .sailbtns{display:flex;gap:8px}
 .sailbtns .btn{min-height:48px}
-.sailbtns .btn.big{flex:1;font-size:18px;white-space:nowrap}
+.sailbtns .btn.big{flex:1;font-size:17px;line-height:1.25;white-space:nowrap;padding-inline:10px;min-width:0}
+.sailbtns .btn.ghost{flex:none;white-space:nowrap;padding-inline:10px;font-size:14px}
 
 /* 結果 */
 .stage{display:flex;flex-direction:column;gap:16px;align-items:center;text-align:center}
@@ -494,12 +512,14 @@ const I_TOOL='<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M2
 const I_FISH_BIG='<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12c3-5 8-6 12-4l5-3-1 5 1 5-5-3c-4 2-9 1-12-4z" fill="currentColor"/><circle cx="7.5" cy="11" r="1.2" fill="#fff"/></svg>';
 const I_PERSON='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4.6" fill="#fff"/><path d="M3.5 21c0-5.2 3.7-8 8.5-8s8.5 2.8 8.5 8z" fill="#fff"/></svg>';
 const GEM='<svg class="gem" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.1 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z" fill="currentColor"/></svg>';
+const I_CART='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2.2l2.3 10.2a1.5 1.5 0 0 0 1.5 1.2h8.3a1.5 1.5 0 0 0 1.4-1.1L20.6 8H6.6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9.5" cy="19.5" r="1.7" fill="currentColor"/><circle cx="17" cy="19.5" r="1.7" fill="currentColor"/></svg>';
+const I_SHIP='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 2.5v11H4.5z" fill="currentColor"/><path d="M12.5 4.5l6 9h-6z" fill="currentColor" opacity=".75"/><path d="M2.5 15.5h19l-2.6 4.2a2 2 0 0 1-1.7.9H6.8a2 2 0 0 1-1.7-.9z" fill="currentColor"/></svg>';
 const coinImg=`<img src="${IMG.coin}" alt="コイン">`;
 const PNAME=i=>`プレイヤー${i+1}`;
 const badge=(i,size=44)=>`<span class="badge" style="--pc:var(--p${i+1});--bs:${size}px" role="img" aria-label="${PNAME(i)}">${I_PERSON}<b>${i+1}</b></span>`;
 
 /* ===== ゲーム状態 ===== */
-let G=null; let ui={modal:null,toast:null,players:3,goal:25};
+let G=null; let ui={modal:null,toast:null,players:3,goal:25,tab:'shop'};
 function newDecks(){
   const d={cat:[],adv:{}};
   d.cat=shuffle(CATS.flatMap(c=>Array(8).fill(c.id)));
@@ -525,7 +545,7 @@ function draw(kind){
 function drawAdv(g){ return G.decks.adv[g].pop()||null }   // なくなったら その グレードは おしまい
 function beginTurn(){
   const p=P(); p.coins+=1; p.food+=1; p.turns+=1;
-  G.sel=emptySel(); G.drawn=null; G.phase='turn';
+  G.sel=emptySel(); G.drawn=null; G.phase='turn'; ui.tab='shop';
   log(`${p.name}の ばん: コイン+1・たべもの+1`);
 }
 function toast(msg){ui.toast=msg;renderToast();clearTimeout(toast.t);toast.t=setTimeout(()=>{ui.toast=null;renderToast()},1900)}
@@ -715,11 +735,18 @@ function reqChips(card,det){
   if(!out.length)out.push('<span class="muted">なし</span>');
   return `<div class="reqs">${out.join('')}</div>`;
 }
+/* もっている ねこ・どうぐを、しゅるいごとに え+かずで ならべる */
+function miniItems(ids,list){
+  const html=list.filter(x=>ids.includes(x.id)).map(x=>{const n=ids.filter(i=>i===x.id).length;
+    return `<span class="mi" title="${esc(x.name)} ×${n}"><img src="${x.img}" alt="${esc(x.name)} ${n}こ">${n>1?`<b aria-hidden="true">${n}</b>`:''}</span>`}).join('');
+  return html||'<span class="none">なし</span>';
+}
 function playersStrip(){
   return `<div class="players">${G.players.map(p=>`
     <div class="pl ${p.i===G.cur&&G.phase!=='win'?'now':''}" style="--pc:var(--p${p.i+1})">${badge(p.i,40)}
       <div class="grow"><div class="nm">${esc(p.name)}</div>
-      <div class="nums"><span>コイン <b>${p.coins}</b>/${G.goal}</span><span>たべもの <b>${p.food}</b></span><span>ねこ <b>${p.cats.length}</b></span><span>どうぐ <b>${p.tools.length}</b></span><span>ばしょ <b>${p.places.length}</b></span></div><div class="pbar" aria-hidden="true"><i style="width:${Math.min(100,Math.round(p.coins/G.goal*100))}%"></i></div></div></div>`).join('')}</div>`;
+      <div class="nums"><span>コイン <b>${p.coins}</b>/${G.goal}</span><span>たべもの <b>${p.food}</b></span><span>ばしょ <b>${p.places.length}</b></span></div><div class="pbar" aria-hidden="true"><i style="width:${Math.min(100,Math.round(p.coins/G.goal*100))}%"></i></div></div>
+      <div class="items"><div class="irow"><span class="lb">ねこ</span>${miniItems(p.cats,CATS)}</div><div class="irow"><span class="lb">どうぐ</span>${miniItems(p.tools,TOOLS)}</div></div></div>`).join('')}</div>`;
 }
 function topbar(){return `<div class="topbar"><span class="small muted">試作版(場所・数字・絵は仮)</span><span class="row"><button class="btn ghost" data-act="rules">ルール</button><button class="btn ghost" data-act="cards">カードいちらん</button><button class="btn ghost mutebtn" data-act="mute" aria-pressed="${snd.mute}" aria-label="おんがく ${snd.mute?'いま ミュート':'いま ON'}">${snd.mute?'🔇':'🔊'}</button></span></div>`}
 function logBox(){return G&&G.log.length?`<details class="log"><summary>きろく</summary><ol>${G.log.slice(0,12).map(l=>`<li>${esc(l)}</li>`).join('')}</ol></details>`:''}
@@ -763,7 +790,7 @@ function slotHtml(kind,cls,item,idx){
 }
 function shipFrame(){
   const s=G.sel;
-  if(!s.ship) return `<section class="panel shipf"><h2><span class="step">3</span>ふねに のせる</h2><div class="placeholder">うえで ふねを えらぶと、のせる わくが でるよ</div></section>`;
+  if(!s.ship) return `<section class="panel shipf"><h2><span class="step">2</span>ふねに のせる</h2><div class="placeholder">うえで ふねを えらぶと、のせる わくが でるよ</div></section>`;
   const sh=SHIPS[s.ship];
   const reqSlots=[];
   for(let i=0;i<sh.food;i++)reqSlots.push(slotHtml('food','req',i<s.food?{}:null,i));
@@ -771,7 +798,7 @@ function shipFrame(){
   const optSlots=[];
   for(let i=0;i<sh.xcat;i++){const id=s.cats[1+i];optSlots.push(slotHtml('cats','opt',id?cat(id):null,1+i))}
   for(let i=0;i<sh.tool;i++){const id=s.tools[i];optSlots.push(slotHtml('tools','opt',id?tool(id):null,i))}
-  return `<section class="panel shipf"><h2><span class="step">3</span>ふねに のせる</h2>
+  return `<section class="panel shipf"><h2><span class="step">2</span>ふねに のせる</h2>
     <div class="shiphead"><div class="pic"><img src="${sh.img}" alt=""></div><div><b>${sh.name}</b><div class="small muted">グレード${s.ship} ・ きほん +${sh.base}コイン ・ ボーナスで さいだい +${maxBonus(s.ship)}</div></div></div>
     <div class="grp req"><div class="grpt"><span class="tag req">ひっす</span><span>これが ないと しゅっこうできないよ</span></div><div class="slots">${reqSlots.join('')}</div></div>
     <div class="grp opt"><div class="grpt"><span class="tag opt">にんい</span><span>のせなくても OK。カードの じょうけんに あうと ボーナスの コインが ふえるよ</span></div>
@@ -820,12 +847,16 @@ function viewTurn(){
       ${off?`<div class="lackmsg">${st.gone?'':'いまは えらべない: '}${esc(st.reasons.join('・'))}</div>`:''}</button>`}).join('');
   const optInfo=sh?`<span class="ck opt">にんい: ねこ ${Math.max(0,s.cats.length-1)}/${sh.xcat} ・ どうぐ ${s.tools.length}/${sh.tool}</span>`:'';
   const checks=sh?`<span class="ck ${chk.foodOk?'ok':'ng'}">ひっす たべもの ${s.food}/${sh.food}</span><span class="ck ${chk.catOk?'ok':'ng'}">ひっす ねこ ${Math.min(1,s.cats.length)}/1</span>${optInfo}`:'';
-  return `${topbar()}${playersStrip()}
-  <section class="panel" style="--pc:var(--p${p.i+1})">
+  const tab=ui.tab==='sail'?'sail':'shop';
+  const lack=[1,2,3,4].some(g=>{const st=shipState(g);return !st.ok&&!st.gone});
+  const tabs=`<div class="tabs" role="tablist" aria-label="がめんを きりかえる">
+    <button role="tab" id="tab-shop" aria-controls="tabpanel" data-act="tab" data-t="shop" aria-selected="${tab==='shop'}">${I_CART}かいもの</button>
+    <button role="tab" id="tab-sail" aria-controls="tabpanel" data-act="tab" data-t="sail" aria-selected="${tab==='sail'}">${I_SHIP}しゅっこう じゅんび</button></div>`;
+  const head=`<section class="panel" style="--pc:var(--p${p.i+1})">
     <div class="turnhead">${badge(p.i,56)}<div class="grow"><h2>${esc(p.name)}の ばん</h2>
       <div class="row" style="margin-top:6px"><span class="chip">${coinImg}${p.coins}</span><span class="chip">${I_FISH}${p.food}</span></div></div></div>
-  </section>
-  <section class="panel"><h2><span class="step">1</span>かいもの <span class="small muted">(どれも 1コイン)</span></h2>
+  </section>`;
+  const shopView=`<section class="panel"><h2>かいもの <span class="small muted">(どれも 1コイン)</span></h2>
     <div class="shop">
       <button class="btn" data-act="buy" data-w="food" ${p.coins<1?'disabled':''}>たべもの<small>+1こ</small></button>
       <button class="btn" data-act="buy" data-w="cat" ${p.coins<1?'disabled':''}>ねこを ひく<small>うらむきの やま</small></button>
@@ -833,15 +864,32 @@ function viewTurn(){
     <div class="drawn" aria-live="polite">${drawnHtml}</div>
     <p class="small muted" style="margin:8px 0 0">どうぐは かえないよ。ぼうけんカードの「ほうび」で もらえるよ。</p>
   </section>
-  <section class="panel"><h2><span class="step">2</span>ふねを えらぶ</h2>
+  ${ownFrame()}
+  <div class="sailbar"><div class="sailrow"><span class="hint">かいものが おわったら、しゅっこうの じゅんびを しよう</span>
+    <div class="sailbtns"><button class="btn ghost" data-act="skip">しゅっこうしない</button><button class="btn gold big" data-act="tab" data-t="sail">じゅんびへ すすむ</button></div></div></div>`;
+  const sailView=`<section class="panel"><h2><span class="step">1</span>ふねを えらぶ</h2>
     <p class="small muted" style="margin:-4px 0 10px">グレーの ふねは、いまは えらべないよ(たべもの・ねこが たりない／いける ばしょが もう ない)。ぼうけんは かならず コインが もらえるよ。ぼうけんカードは のこり ${advTotal()}まい。ぜんぶ なくなったら おしまい！</p>
+    ${lack?`<div class="row" style="margin:-2px 0 10px"><button class="btn ghost" data-act="tab" data-t="shop">${I_CART.replace('<svg','<svg style="width:20px;height:20px;display:inline-block;vertical-align:-4px;margin-right:4px"')}かいものに もどる</button></div>`:''}
     <div class="ships">${ships}</div></section>
   ${shipFrame()}
   ${invFrame()}
   <div class="sailbar"><div class="checks">${checks}</div>
     <div class="sailrow"><span class="hint ${chk.ok?'ok':''}">${esc(chk.msg)}</span>
-      <div class="sailbtns"><button class="btn ghost" data-act="skip">しゅっこうしない</button><button class="btn gold big" data-act="sail" ${chk.ok?'':'disabled'}>しゅっこう！</button></div></div></div>
+      <div class="sailbtns"><button class="btn ghost" data-act="skip">しゅっこうしない</button><button class="btn gold big" data-act="sail" ${chk.ok?'':'disabled'}>しゅっこう！</button></div></div></div>`;
+  return `${topbar()}${playersStrip()}${head}${tabs}
+  <div id="tabpanel" role="tabpanel" aria-labelledby="tab-${tab}" style="display:flex;flex-direction:column;gap:16px">${tab==='shop'?shopView:sailView}</div>
   ${logBox()}`;
+}
+/* かいもの がめんの「もっている もの」(みるだけ) */
+function ownFrame(){
+  const p=P();
+  const tiles=(ids,list,kind)=>{const t=list.filter(x=>ids.includes(x.id)).map(x=>`<div class="tile ro"><span class="pic"><img src="${x.img}" alt=""></span><span class="own">×${ids.filter(i=>i===x.id).length}</span><span class="nm">${esc(x.name)}</span>${kind==='tools'?`<span class="gtag ${x.wild?'all':''}">${toolGradeText(x)}</span>`:''}</div>`).join('');
+    return t?`<div class="hand">${t}</div>`:`<div class="empty">${kind==='cats'?'ねこを まだ もっていないよ。「ねこを ひく」で あつめよう。':'どうぐを まだ もっていないよ。ぼうけんの ほうびで もらえるよ。'}</div>`};
+  return `<section class="panel inv"><h2>もっている もの</h2>
+    <div class="row"><span class="chip">${coinImg}コイン ${p.coins}</span><span class="chip">${I_FISH}たべもの ${p.food}</span></div>
+    <div class="subhead">ねこ</div>${tiles(p.cats,CATS,'cats')}
+    <div class="subhead">どうぐ</div>${tiles(p.tools,TOOLS,'tools')}
+  </section>`;
 }
 function rewardHtml(c){
   if(!c.reward)return `<div class="reward muted small">ほうびの どうぐ: なし(グレード4は コインだけ)</div>`;
@@ -922,6 +970,7 @@ document.addEventListener('click',e=>{
   else if(a==='start')startGame(ui.players);
   else if(a==='begin'){beginTurn();render()}
   else if(a==='buy')buy(t.dataset.w);
+  else if(a==='tab'){ui.tab=t.dataset.t==='sail'?'sail':'shop';render();const tb=$('.tabs');if(tb&&tb.getBoundingClientRect().top<0)tb.scrollIntoView({block:'start'});const f=$(`#tab-${ui.tab}`);f&&f.focus({preventScroll:true})}
   else if(a==='ship')setShip(+t.dataset.g);
   else if(a==='load')load(t.dataset.kind,t.dataset.id);
   else if(a==='unload')unload(t.dataset.kind,+t.dataset.i);
@@ -937,7 +986,7 @@ document.addEventListener('click',e=>{
   else if(a==='close'){ui.modal=null;renderModal()}
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&ui.modal){ui.modal=null;renderModal()}});
-window.PG={get G(){return G},startGame,beginTurn,buy,setShip,load,unload,sail,sailCheck,skip,afterResult,nextPlayer,resolve,CARDS,SHIPS,CATS,TOOLS,render,ART};
+window.PG={get ui(){return ui},get G(){return G},startGame,beginTurn,buy,setShip,load,unload,sail,sailCheck,skip,afterResult,nextPlayer,resolve,CARDS,SHIPS,CATS,TOOLS,render,ART};
 render();
 </script>
 </body>
