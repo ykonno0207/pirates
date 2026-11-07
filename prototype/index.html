@@ -102,6 +102,13 @@ h1,h2,h3{margin:0;text-wrap:balance}
 .tabs button[aria-selected="true"]{background:var(--sea);color:var(--on-sea);box-shadow:0 3px 0 var(--shadow)}
 .tabs button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .tile.ro{cursor:default}
+.panel.inv.me{border:3px solid var(--pc)}
+.me .gtag{white-space:normal;line-height:1.3;padding:1px 6px}
+.me .subhead{margin:14px 0 4px;color:var(--ink)}
+.me .subhead.sm{font-size:12px;margin:8px 0 4px;color:var(--muted)}
+.me .hand{grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:8px}
+.me .tile .pic{height:58px}
+.me .tile .pic img{max-height:50px}
 
 /* 手番の見出し */
 .turnhead{display:flex;gap:14px;align-items:center}
@@ -489,11 +496,11 @@ const CARDS=[
  C(2,'reef','グレートバリアリーフ',2,'せかいさいだいの サンゴの うみ。',[],2,[],'lantern'),
  C(2,'nz','ニュージーランド',3,'ひつじが たくさん いる みなみの くに。はたけを ほって みよう。',[],1,['shovel'],'compass'),
  C(2,'tahiti','タヒチ',3,'みなみの うみに ある、うつくしい しま。',[],2,[],'telescope'),
- C(2,'caribbean','カリブかい',4,'むかし、かいぞくが たくさん いた うみ。たからを ほりだそう！',[],1,['shovel'],'flag'),
+ C(2,'caribbean','カリブかい',4,'むかし、かいぞくが たくさん いた うみ。たからを ほりだそう！',[],1,['shovel'],'firstaid'),
  C(3,'pyramid','エジプトの ピラミッド',3,'4500ねんいじょう まえに つくられた、おおきな いしの おはか。',[],2,[],'firstaid'),
  C(3,'angkor','アンコールワット',4,'カンボジアの もりの なかに ある、おおきな いせき。なかは くらい。',[],2,['lantern'],'compass'),
  C(3,'machu','マチュピチュ',4,'ペルーの やまの うえに ある、むかしの インカの まち。',['yaruki'],1,['rope'],'telescope'),
- C(3,'easter','イースターとう',5,'チリの しま。おおきな モアイが たくさん いる。',['nikoniko'],1,['rope'],'firstaid'),
+ C(3,'easter','イースターとう',5,'チリの しま。おおきな モアイが たくさん いる。',['nikoniko'],1,['rope'],'flag'),
  C(3,'bermuda','バミューダ・トライアングル',6,'ふねが きえると いわれる、ふしぎな うみ。',['warudakumi'],1,['lantern'],'flag'),
  C(4,'amazon','アマゾンがわ',5,'せかいさいだいの ジャングルを ながれる、おおきな かわ。',['otoboke'],2,['compass']),
  C(4,'arctic','ほっきょく',6,'いちねんじゅう こおりの うえ。シロクマが すんでいる。',['kiriri'],2,['firstaid']),
@@ -808,25 +815,31 @@ function shipFrame(){
   </section>`;
 }
 /* もっている もの(もちもの) */
-function invFrame(){
-  const p=P(),sel=G.sel,has=!!sel.ship;
+/* 手番の見出し(なまえ+もっている もの)。かいものでは みるだけ、しゅっこう じゅんびでは タップで ふねに のせる */
+function headFrame(tab){
+  const p=P(),sel=G.sel,sail=tab==='sail',has=sail&&!!sel.ship;
   const tiles=(kind)=>{
     const src=kind==='cats'?CATS:TOOLS,own=kind==='cats'?p.cats:p.tools;
     const t=src.filter(x=>own.includes(x.id)).map(x=>{
-      const n=own.filter(i=>i===x.id).length-sel[kind].filter(i=>i===x.id).length; if(n<=0)return '';
+      const n=own.filter(i=>i===x.id).length-(sail?sel[kind].filter(i=>i===x.id).length:0); if(n<=0)return '';
+      const body=`<span class="pic"><img src="${x.img}" alt=""></span><span class="own">×${n}</span><span class="nm">${esc(x.name)}</span>`;
+      if(!sail)return `<div class="tile ro">${body}${kind==='tools'?`<span class="gtag ${x.wild?'all':''}">${toolGradeText(x)}</span>`:''}</div>`;
       const fits=kind==='cats'||(has&&toolOk(x,sel.ship));
       const gt=kind==='tools'?`<span class="gtag ${x.wild?'all':(has&&fits?'match':'')}">${toolGradeText(x)}</span>`:'';
       const dis=!has||!fits;
-      return `<button class="tile ${has&&!fits?'off':''}" data-act="load" data-kind="${kind}" data-id="${x.id}" ${dis?'disabled':''} aria-label="${esc(x.name)}(${kind==='tools'?toolGradeText(x):'ねこ'})を ふねに のせる"><span class="pic"><img src="${x.img}" alt=""></span><span class="own">×${n}</span><span class="nm">${esc(x.name)}</span>${gt}</button>`}).join('');
+      return `<button class="tile ${has&&!fits?'off':''}" data-act="load" data-kind="${kind}" data-id="${x.id}" ${dis?'disabled':''} aria-label="${esc(x.name)}(${kind==='tools'?toolGradeText(x):'ねこ'})を ふねに のせる">${body}${gt}</button>`}).join('');
     return t?`<div class="hand">${t}</div>`:`<div class="empty">${own.length?'ぜんぶ ふねに のせたよ。':(kind==='cats'?'ねこを まだ もっていないよ。「ねこを ひく」で あつめよう。':'どうぐを まだ もっていないよ。ぼうけんの ほうびで もらえるよ。')}</div>`;
   };
-  const foodLeft=p.food-sel.food;
-  const foodTile=foodLeft>0?`<div class="hand"><button class="tile" data-act="load" data-kind="food" ${has?'':'disabled'} aria-label="たべものを ふねに のせる"><span class="pic"><span style="color:#3A86B8">${I_FISH_BIG.replace('class="ic"','class="ic" style="width:44px;height:44px"')}</span></span><span class="own">×${foodLeft}</span><span class="nm">たべもの</span></button></div>`:`<div class="empty">${p.food?'ぜんぶ ふねに のせたよ。':'たべものが ないよ。かいもので かえるよ。'}</div>`;
-  return `<section class="panel inv"><h2>もっている もの <span class="small muted" style="font-weight:700">${has?'(タップで ふねに のせる)':'(ふねを えらぶと のせられるよ)'}</span></h2>
-    <div class="row"><span class="chip">${coinImg}コイン ${p.coins}</span><span class="chip">${I_FISH}たべもの ${p.food}</span></div>
-    <div class="subhead">ねこ</div>${tiles('cats')}
-    <div class="subhead">どうぐ</div>${tiles('tools')}
-    <div class="subhead">たべもの</div>${foodTile}
+  const foodLeft=p.food-(sail?sel.food:0);
+  const foodTile=!sail?'':foodLeft>0?`<div class="hand"><button class="tile" data-act="load" data-kind="food" ${has?'':'disabled'} aria-label="たべものを ふねに のせる"><span class="pic"><span style="color:#3A86B8">${I_FISH_BIG.replace('class="ic"','class="ic" style="width:40px;height:40px"')}</span></span><span class="own">×${foodLeft}</span><span class="nm">たべもの</span></button></div>`:`<div class="empty">${p.food?'ぜんぶ ふねに のせたよ。':'たべものが ないよ。かいもので かえるよ。'}</div>`;
+  const note=sail?(has?'タップで ふねに のせる':'ふねを えらぶと のせられるよ'):'みるだけ';
+  return `<section class="panel inv me" style="--pc:var(--p${p.i+1})">
+    <div class="turnhead">${badge(p.i,56)}<div class="grow"><h2>${esc(p.name)}の ばん</h2>
+      <div class="row" style="margin-top:6px"><span class="chip">${coinImg}コイン ${p.coins}</span><span class="chip">${I_FISH}たべもの ${p.food}</span><span class="chip">ばしょ ${p.places.length}</span></div></div></div>
+    <div class="subhead">もっている もの <span class="small" style="font-weight:700">(${note})</span></div>
+    <div class="subhead sm">ねこ</div>${tiles('cats')}
+    <div class="subhead sm">どうぐ</div>${tiles('tools')}
+    ${sail?`<div class="subhead sm">たべもの</div>${foodTile}`:''}
   </section>`;
 }
 function viewTurn(){
@@ -852,10 +865,7 @@ function viewTurn(){
   const tabs=`<div class="tabs" role="tablist" aria-label="がめんを きりかえる">
     <button role="tab" id="tab-shop" aria-controls="tabpanel" data-act="tab" data-t="shop" aria-selected="${tab==='shop'}">${I_CART}かいもの</button>
     <button role="tab" id="tab-sail" aria-controls="tabpanel" data-act="tab" data-t="sail" aria-selected="${tab==='sail'}">${I_SHIP}しゅっこう じゅんび</button></div>`;
-  const head=`<section class="panel" style="--pc:var(--p${p.i+1})">
-    <div class="turnhead">${badge(p.i,56)}<div class="grow"><h2>${esc(p.name)}の ばん</h2>
-      <div class="row" style="margin-top:6px"><span class="chip">${coinImg}${p.coins}</span><span class="chip">${I_FISH}${p.food}</span></div></div></div>
-  </section>`;
+  const head=headFrame(tab);
   const shopView=`<section class="panel"><h2>かいもの <span class="small muted">(どれも 1コイン)</span></h2>
     <div class="shop">
       <button class="btn" data-act="buy" data-w="food" ${p.coins<1?'disabled':''}>たべもの<small>+1こ</small></button>
@@ -864,7 +874,6 @@ function viewTurn(){
     <div class="drawn" aria-live="polite">${drawnHtml}</div>
     <p class="small muted" style="margin:8px 0 0">どうぐは かえないよ。ぼうけんカードの「ほうび」で もらえるよ。</p>
   </section>
-  ${ownFrame()}
   <div class="sailbar"><div class="sailrow"><span class="hint">かいものが おわったら、しゅっこうの じゅんびを しよう</span>
     <div class="sailbtns"><button class="btn ghost" data-act="skip">しゅっこうしない</button><button class="btn gold big" data-act="tab" data-t="sail">じゅんびへ すすむ</button></div></div></div>`;
   const sailView=`<section class="panel"><h2><span class="step">1</span>ふねを えらぶ</h2>
@@ -872,24 +881,12 @@ function viewTurn(){
     ${lack?`<div class="row" style="margin:-2px 0 10px"><button class="btn ghost" data-act="tab" data-t="shop">${I_CART.replace('<svg','<svg style="width:20px;height:20px;display:inline-block;vertical-align:-4px;margin-right:4px"')}かいものに もどる</button></div>`:''}
     <div class="ships">${ships}</div></section>
   ${shipFrame()}
-  ${invFrame()}
   <div class="sailbar"><div class="checks">${checks}</div>
     <div class="sailrow"><span class="hint ${chk.ok?'ok':''}">${esc(chk.msg)}</span>
       <div class="sailbtns"><button class="btn ghost" data-act="skip">しゅっこうしない</button><button class="btn gold big" data-act="sail" ${chk.ok?'':'disabled'}>しゅっこう！</button></div></div></div>`;
   return `${topbar()}${playersStrip()}${head}${tabs}
   <div id="tabpanel" role="tabpanel" aria-labelledby="tab-${tab}" style="display:flex;flex-direction:column;gap:16px">${tab==='shop'?shopView:sailView}</div>
   ${logBox()}`;
-}
-/* かいもの がめんの「もっている もの」(みるだけ) */
-function ownFrame(){
-  const p=P();
-  const tiles=(ids,list,kind)=>{const t=list.filter(x=>ids.includes(x.id)).map(x=>`<div class="tile ro"><span class="pic"><img src="${x.img}" alt=""></span><span class="own">×${ids.filter(i=>i===x.id).length}</span><span class="nm">${esc(x.name)}</span>${kind==='tools'?`<span class="gtag ${x.wild?'all':''}">${toolGradeText(x)}</span>`:''}</div>`).join('');
-    return t?`<div class="hand">${t}</div>`:`<div class="empty">${kind==='cats'?'ねこを まだ もっていないよ。「ねこを ひく」で あつめよう。':'どうぐを まだ もっていないよ。ぼうけんの ほうびで もらえるよ。'}</div>`};
-  return `<section class="panel inv"><h2>もっている もの</h2>
-    <div class="row"><span class="chip">${coinImg}コイン ${p.coins}</span><span class="chip">${I_FISH}たべもの ${p.food}</span></div>
-    <div class="subhead">ねこ</div>${tiles(p.cats,CATS,'cats')}
-    <div class="subhead">どうぐ</div>${tiles(p.tools,TOOLS,'tools')}
-  </section>`;
 }
 function rewardHtml(c){
   if(!c.reward)return `<div class="reward muted small">ほうびの どうぐ: なし(グレード4は コインだけ)</div>`;
@@ -954,7 +951,7 @@ function renderModal(){
     <li><b>ボーナス:</b> カードの じょうけん(ねこ・どうぐ)を、のせた カードが みたしていたら、カードの ボーナスの コインも もらえる。</li>
     <li>ボーナスが もらえても もらえなくても、のせた たべもの・ねこ・どうぐは ぜんぶ なくなる。つかった どうぐは もどってこない。</li>
     <li>「おうえんのはた」を のせると、どんな じょうけんでも ボーナスが もらえる。</li></ul>
-   <h3>どうぐ(つかう グレード)</h3><ul>${TOOLS.map(x=>`<li><b>${esc(x.name)}</b>: ${toolGradeText(x)}</li>`).join('')}<li>どうぐは、きめられた グレードの ふねにだけ のせられる(おうえんのはたは どの ふねでも OK)。</li><li>どうぐは ぼうけんの ほうびだけで てに はいる(ぜんぶで ${TOOL_TOTAL}まい)。ひくい グレードの ぼうけんで、つぎの グレードの どうぐが もらえるよ。</li></ul>
+   <h3>どうぐ(つかう グレード)</h3><ul>${TOOLS.map(x=>`<li><b>${esc(x.name)}</b>: ${toolGradeText(x)}</li>`).join('')}<li>どうぐは、きめられた グレードの ふねにだけ のせられる(おうえんのはたは どの ふねでも OK)。</li><li>どうぐは ぼうけんの ほうびだけで てに はいる(ぜんぶで ${TOOL_TOTAL}まい)。ひくい グレードの ぼうけんで、つぎの グレードの どうぐが もらえるよ。</li><li>おうえんのはたは、グレード3の ぼうけんで しか もらえない(2まいだけ)。</li></ul>
    <h3>メモ</h3><ul><li>「なんでも」は、どの ねこ・どうぐでも よい。「してい」は カードに かかれた ねこ・どうぐ。</li><li>この アプリは しさくばんです。かず・ばしょ・えは かりです。</li></ul>`;
   const cl=`<h2>カードいちらん(かり)</h2>`+[1,2,3,4].map(g=>`<h3>グレード${g} ${SHIPS[g].name} ・ きほん +${SHIPS[g].base}コイン</h3><div class="cl">${CARDS.filter(c=>c.g===g).map(c=>`<div class="it"><div class="th">${ARTSVG(c.key)}</div><div class="tx"><b>${esc(c.place)}</b><span>${c.bonus>0?`ボーナス +${c.bonus}`:'ボーナスなし'} ・ ほうび: ${c.reward?esc(tool(c.reward).name):'なし'}</span><span class="muted">${c.bonus>0?`じょうけん ねこ: ${[...c.cats.spec.map(i=>cat(i).name),...(c.cats.any?[`なんでも×${c.cats.any}`]:[])].join('+')||'なし'} / どうぐ: ${[...c.tools.spec.map(i=>tool(i).name),...(c.tools.any?[`なんでも×${c.tools.any}`]:[])].join('+')||'なし'}`:'どんな ねこでも OK'}</span></div></div>`).join('')}</div>`).join('')+`<p class="small muted">じょうけんの ねこの かずは、のせた ねこの ぜんぶ(ひっすの 1ぴきも ふくむ)。ぼうけんカードは 1しゅるい 1まい(ぜんぶで ${CARDS.length}まい)。めくったら もどらない。どうぐカードは ほうびの ぶんだけ(${TOOL_TOTAL}まい)。</p>`;
   m.innerHTML=`<div class="sheet" role="dialog" aria-modal="true">${ui.modal==='rules'?rule:cl}<button class="btn" data-act="close">とじる</button></div>`;
