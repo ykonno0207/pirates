@@ -649,12 +649,12 @@ function drawAdv(g){ return G.decks.adv[g].pop()||null }
 function advGrade(p){ for(let g=p.ship;g>=1;g--) if(advLeft(g)) return g; return null }
 function beginTurn(){
   const p=P(); p.coins+=1; p.food+=1; p.turns+=1;
-  G.sel=emptySel(); G.sel.ship=p.ship; G.drawn=null; G.phase='turn'; ui.step=p.ship<4?'upgrade':'sail';
+  G.sel=emptySel(); G.sel.ship=p.ship; G.drawn=null; G.phase='turn'; ui.step=p.ship<4&&p.turns>1?'upgrade':'sail';   // さいしょの ばんは グレードアップ できない
   log(`${p.name}の ばん: コイン+1・たべもの+1`);
 }
 function toast(msg){ui.toast=msg;renderToast();clearTimeout(toast.t);toast.t=setTimeout(()=>{ui.toast=null;renderToast()},1900)}
 function buyShip(){
-  const p=P(),g=p.ship+1; if(g>4)return;
+  const p=P(),g=p.ship+1; if(g>4||p.turns<=1)return;
   const x=SHIPS[g]; if(p.coins<x.cost){toast(`コインが たりないよ(${x.cost}まい いる)`);return}
   p.coins-=x.cost; p.ship=g; G.sel.ship=g; G.drawn={kind:'ship',g};
   log(`${p.name}: ふねを グレードアップ → ${x.name}(グレード${g})`);
@@ -887,7 +887,8 @@ function qSail(){
     </div>
     ${chk.ok?`<div class="answers"><button class="btn yes" data-act="sail">はい<small>しゅっこう！${f.buy?`(コイン${f.buy}まい つかう)`:''}</small></button><button class="btn no" data-act="skip">いいえ<small>この ばんは やすむ</small></button></div>`
       :`<div class="answers one"><button class="btn yes" data-act="skip">つぎの ひとへ</button></div>`}
-    ${p.ship<4&&!(dr&&dr.kind==='ship')?`<button class="qback" data-act="up-back">← グレードアップの しつもんに もどる</button>`:''}
+    ${p.turns<=1&&p.ship<4?`<div class="small muted">さいしょの ばんは グレードアップ できないよ。つぎの ばんから できるよ。</div>`:''}
+    ${p.ship<4&&p.turns>1&&!(dr&&dr.kind==='ship')?`<button class="qback" data-act="up-back">← グレードアップの しつもんに もどる</button>`:''}
   </section>`;
 }
 /* もっている もの(もちもの) */
@@ -915,7 +916,7 @@ function headFrame(tab){
   </section>`;
 }
 function viewTurn(){
-  const p=P(),step=ui.step==='sail'||p.ship>=4?'sail':'upgrade';
+  const p=P(),step=ui.step==='sail'||p.ship>=4||p.turns<=1?'sail':'upgrade';
   const stepper=`<div class="stepper" aria-label="すすみかた"><span class="${step==='upgrade'?'now':'done'}">1 グレードアップ</span><i>→</i><span class="${step==='sail'?'now':''}">2 しゅっこう</span><i>→</i><span>3 ぼうけん</span></div>`;
   return `${topbar()}
   ${headFrame()}
@@ -999,8 +1000,8 @@ function renderModal(){
    <h3>かち</h3><ul><li>コインが ${(G&&G.goal)||ui.goal}まい あつまった ひとの かち(ぼうけんの あとに かぞえる)。</li><li>そのまえに ぼうけんカードが ぜんぶ なくなったら おしまい。コインが いちばん おおい ひとの かち(おなじなら みんな かち)。</li><li>グレードアップや たべもので コインを つかうので、ためる か つかう かを かんがえよう。</li></ul>
    <h3>はじまり</h3><ul><li>プレイヤーは にんげん(2〜4にん)。ねこは ふねに のる せんいん カード。</li><li>コイン0まい・たべもの1こ・グレード1の ふね(スループ)。ねこと どうぐは なし。まいばん コイン+1・たべもの+1。</li></ul>
    <h3>じぶんの ばん</h3><ul>
-    <li><b>しつもん1「ふねを グレードアップ しますか？」:</b> はい なら コインを はらって ふねが 1つ うえの グレードに なる。ねこと どうぐは かえない(ぼうけんの ほうびで もらう)。</li>
-    <li><b>ふねの グレードアップ:</b> コインで、ふねを 1つ うえの グレードに できる(グレード2: ${SHIPS[2].cost}コイン、3: ${SHIPS[3].cost}コイン、4: ${SHIPS[4].cost}コイン)。1かいに 1つずつ。</li>
+    <li><b>しつもん1「ふねを グレードアップ しますか？」:</b> (2かいめの ばんから)はい なら コインを はらって ふねが 1つ うえの グレードに なる。ねこと どうぐは かえない(ぼうけんの ほうびで もらう)。</li>
+    <li><b>ふねの グレードアップ:</b> コインで、ふねを 1つ うえの グレードに できる(グレード2: ${SHIPS[2].cost}コイン、3: ${SHIPS[3].cost}コイン、4: ${SHIPS[4].cost}コイン)。1かいに 1つずつ。さいしょの ばんは グレードアップ できない。</li>
     <li><b>ふね:</b> しゅっこうは いつも いまの ふね(いちばん あたらしい グレード)。たかい ふねほど たべものが いるけれど、きほんの コインが ふえる。</li>
     <li><b>しつもん2「しゅっこう しますか？」:</b> はい なら、ふねで きまった かずの たべものを じどうで セットして しゅっこう。たりない ときは、1コインで 1こ じどうで かう。いいえ なら その ばんは やすむ。</li>
     <li><b>しゅっこう:</b> ふねと おなじ グレードの ぼうけんカードを 1まい めくる。その やまが ない ときは、したの グレードで のこっている いちばん うえの やまから めくる。めくった カードは じぶんの もの(いった ばしょ)。やまには もどらない。</li>
