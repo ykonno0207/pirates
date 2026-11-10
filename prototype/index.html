@@ -128,6 +128,9 @@ h1,h2,h3{margin:0;text-wrap:balance}
 .infohd .itag.do{background:var(--accent);color:var(--accent-ink)}
 .infohd .itag{background:var(--line);color:var(--ink);border-radius:999px;padding:1px 10px;font-size:12px}
 .tile.ro{cursor:default}
+.stars{display:flex;gap:6px;font-size:44px;line-height:1}
+table.t th{white-space:nowrap}
+.stars span{color:var(--line)} .stars span.on{color:#E8B53A;text-shadow:0 2px 0 rgba(0,0,0,.15)}
 .fslots{display:flex;flex-wrap:wrap;gap:8px}
 .fslot{width:78px;height:78px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:10px;font-weight:900;text-align:center;line-height:1.2}
 .fslot.have{background:var(--pic);border:3px solid var(--accent);color:#46607A}
@@ -604,7 +607,12 @@ const CARDS=[
 const CAT_MARK=['venice','galapagos','tahiti','pyramid','angkor','easter','amazon','arctic','canyon','sahara'];
 CARDS.forEach(c=>c.cat=CAT_MARK.includes(c.key));
 const GOALS=[15,20,25];
-const recGoal=n=>n===2?25:15;   // にんずうごとの おすすめ(しさんで きめた)
+const recGoal=n=>n<=2?25:15;
+/* ひとりで あそぶ とき: すくない ばんで ゴールを めざす。ほしの めやす(しさん: 25まいで だいたい 8ばん) */
+const soloStars=(goal,turns)=>turns<=Math.ceil(goal/3)?3:turns<=Math.ceil(goal/3)+2?2:1;
+const bestKey=goal=>'pirates-solo-best-'+goal;
+function getBest(goal){try{const v=+localStorage.getItem(bestKey(goal));return v>0?v:null}catch(e){return null}}
+function setBest(goal,t){try{localStorage.setItem(bestKey(goal),String(t))}catch(e){}}   // にんずうごとの おすすめ(しさんで きめた)
 
 /* ===== ユーティリティ ===== */
 const $=(s,r=document)=>r.querySelector(s);
@@ -820,11 +828,11 @@ function viewSetup(){
     <div class="catrow" aria-label="ねこの せんいん">${CATS.map(c=>`<img src="${c.img}" alt="${esc(c.name)}">`).join('')}</div>
   </section>
   <section class="panel"><h2>なんにんで あそぶ？</h2>
-    <div class="seg" role="group" aria-label="にんずう">${[2,3,4].map(n=>`<button data-act="players" data-n="${n}" aria-pressed="${ui.players===n}">${n}</button>`).join('')}</div>
+    <div class="seg" role="group" aria-label="にんずう">${[1,2,3,4].map(n=>`<button data-act="players" data-n="${n}" aria-pressed="${ui.players===n}">${n}</button>`).join('')}</div>
     <div class="pbadges">${Array.from({length:ui.players},(_,i)=>`<div class="row" style="gap:8px">${badge(i,40)}<b class="small">${PNAME(i)}</b></div>`).join('')}</div>
     <h2 style="margin-top:14px">なんまいで クリア？</h2>
     <div class="seg" role="group" aria-label="クリアの コインの かず">${GOALS.map(n=>`<button data-act="goal" data-n="${n}" aria-pressed="${ui.goal===n}">${n}まい</button>`).join('')}</div>
-    <p class="small muted" style="margin:10px 0 0">1だいの たんまつを まわして あそびます。じぶんの ばんに なったら ボタンを おしてね。</p>
+    <p class="small muted" style="margin:10px 0 0">${ui.players===1?`ひとりで あそぶ ときは、なんばんめで ゴール できるか ちょうせん！ すくない ばんで ゴールすると ほしが ふえるよ(★★★は ${Math.ceil(ui.goal/3)}ばん いない)。${getBest(ui.goal)?` いままでの いちばん: ${getBest(ui.goal)}ばん`:''}`:'1だいの たんまつを まわして あそびます。じぶんの ばんに なったら ボタンを おしてね。'}</p>
   </section>
   <div class="row"><button class="btn gold big" data-act="start">はじめる</button><button class="btn ghost" data-act="rules">ルール</button><button class="btn ghost" data-act="cards">カードいちらん</button></div>`;
 }
@@ -834,7 +842,7 @@ function viewPass(){
   <section class="panel stage">
     ${badge(p.i,96)}
     <h2 class="disp" style="font-size:26px">${esc(p.name)}の ばん</h2>
-    <p class="muted" style="margin:0">${G.round}しゅうめ ・ たんまつを ${esc(p.name)}に わたしてね</p>
+    <p class="muted" style="margin:0">${G.players.length===1?`${p.turns+1}ばんめ ・ コイン ${p.coins}/${G.goal}まい${getBest(G.goal)?` ・ いままでの いちばん ${getBest(G.goal)}ばん`:''}`:`${G.round}しゅうめ ・ たんまつを ${esc(p.name)}に わたしてね`}</p>
     <button class="btn gold big" data-act="begin">ばんを はじめる<br><small>コイン+1 ・ たべもの+1 を もらう</small></button>
     <p class="small muted" style="margin:0">このあと「グレードアップ しますか？」「しゅっこう しますか？」と じゅんばんに きくので、はい・いいえで こたえてね。</p>
   </section>${logBox()}`;
@@ -968,7 +976,7 @@ function viewResult(){
         <div class="printed"><span>カードの ほうび: どうぐ ${c.reward?esc(tool(c.reward).name):'なし'} ・ ねこの しるし ${c.cat?'あり':'なし'}</span></div>
       </div></div>
       ${gotHtml(r,p)}
-      ${G.endBy==='goal'?`<div class="banner win">コインが ${p.coins}まいに！ ${esc(p.name)}の かち！</div>`
+      ${G.endBy==='goal'?`<div class="banner win">コインが ${p.coins}まいに！ ${G.players.length===1?`${p.turns}ばんめで ゴール！`:`${esc(p.name)}の かち！`}</div>`
        :G.endBy==='empty'?`<div class="banner win">ぼうけんカードが ぜんぶ なくなった！ おしまい！</div>`
        :''}
       <button class="btn gold big" data-act="after">${G.winner?'けっかを みる':'つぎの ひとへ'}</button>`;
@@ -976,7 +984,25 @@ function viewResult(){
   return `${topbar()}${playersStrip()}<section class="panel stage" style="--pc:var(--p${p.i+1})"><div class="row" style="gap:10px">${badge(p.i,40)}<h2 class="disp" style="font-size:22px">${esc(p.name)}の ぼうけん</h2></div>
     <div><div class="small muted" style="margin-bottom:6px">つかった たべもの${r.bought?`(コイン${r.bought}まいで ${r.bought}こ かった)`:''}</div><div class="loaded"><span class="chip" role="img" aria-label="たべもの ${r.food}こ">${I_FISH.repeat(r.food)}</span></div></div>${body}</section>${logBox()}`;
 }
+function viewSoloEnd(){
+  const p=G.players[0],goal=G.endBy==='goal';
+  const st=goal?soloStars(G.goal,p.turns):0, best=getBest(G.goal);
+  if(goal&&G.newBest==null){G.newBest=!best||p.turns<best; if(G.newBest)setBest(G.goal,p.turns)}
+  const shown=getBest(G.goal);
+  return `${topbar()}<section class="panel winbox">${badge(0,120)}
+    <h1>${goal?`${p.turns}ばんめで ゴール！`:'おしまい！'}</h1>
+    ${goal?`<div class="stars" role="img" aria-label="ほし ${st}こ">${[1,2,3].map(i=>`<span class="${i<=st?'on':''}">★</span>`).join('')}</div>`:''}
+    <p style="margin:0">${goal?`コイン ${G.goal}まいを あつめたよ(いま ${p.coins}まい)。`:`ぼうけんカードが ぜんぶ なくなった。コインは ${p.coins}まい。`}</p>
+    <p class="small muted" style="margin:0">★★★: ${Math.ceil(G.goal/3)}ばん いない ・ ★★: ${Math.ceil(G.goal/3)+2}ばん いない ・ ★: それより おおい</p>
+    ${goal&&G.newBest?`<div class="banner ok">きろく こうしん！ いままでで いちばん はやい！</div>`:shown?`<p style="margin:0">いままでの いちばん: <b>${shown}ばん</b></p>`:''}
+    <div class="scroll" style="width:100%"><table class="t"><tbody>
+      <tr><th>しゅっこう</th><td>${p.trips}かい</td></tr><tr><th>ふね</th><td>グレード${p.ship}</td></tr>
+      <tr><th>ねこ</th><td>${p.cats.length}ぴき</td></tr><tr><th>どうぐ</th><td>${p.tools.length}こ</td></tr>
+      <tr><th>いった ばしょ</th><td>${p.places.map(k=>esc(CARDS.find(c=>c.key===k).place)).join('・')||'—'}</td></tr></tbody></table></div>
+    <div class="row"><button class="btn gold big" data-act="again">もういちど</button><button class="btn ghost" data-act="toSetup">はじめの がめんへ</button></div></section>${logBox()}`;
+}
 function viewWin(){
+  if(G.players.length===1)return viewSoloEnd();
   const ws=G.winners,w=ws[0];
   const head=ws.length>1?`${ws.map(x=>esc(x.name)).join('と ')}の かち！`:`${esc(w.name)}の かち！`;
   const msg=G.endBy==='goal'?`コインが ${w.coins}まい あつまりました(ゴールは ${G.goal}まい)。${w.turns}ばんめで ゴール！`
@@ -997,6 +1023,7 @@ function renderModal(){
   let m=$('#modal');if(!ui.modal){m&&m.remove();return}
   if(!m){m=document.createElement('div');m.id='modal';m.className='modal';$('#layer').appendChild(m)}
   const rule=`<h2>ルール</h2>
+   <h3>ひとりで あそぶ とき</h3><ul><li>コインを ${(G&&G.goal)||ui.goal}まい あつめるまでの ばんの かずに ちょうせん。すくない ほど ★が ふえる。</li><li>いちばん はやかった きろくが のこるよ(この たんまつだけ)。</li></ul>
    <h3>かち</h3><ul><li>コインが ${(G&&G.goal)||ui.goal}まい あつまった ひとの かち(ぼうけんの あとに かぞえる)。</li><li>そのまえに ぼうけんカードが ぜんぶ なくなったら おしまい。コインが いちばん おおい ひとの かち(おなじなら みんな かち)。</li><li>グレードアップや たべもので コインを つかうので、ためる か つかう かを かんがえよう。</li></ul>
    <h3>はじまり</h3><ul><li>プレイヤーは にんげん(2〜4にん)。ねこは ふねに のる せんいん カード。</li><li>コイン0まい・たべもの1こ・グレード1の ふね(スループ)。ねこと どうぐは なし。まいばん コイン+1・たべもの+1。</li></ul>
    <h3>じぶんの ばん</h3><ul>
